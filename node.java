@@ -8,6 +8,13 @@ import java.util.concurrent.Executors;
  * Concurrent TCP server for calculating RPN values
  */
 public class node {
+    // globals
+    int NUM_RINGO;
+    int NUM_ACTIVE_RINGO;
+    int PACKET_TRANSITTION_NUMBER;
+    node[] KNOWN_RINGO_LIST;
+    int[][] RTT;
+    // TODO: queue
 
     public static void main(String[] args) {
         // TODO: interface configuration
@@ -32,12 +39,28 @@ public class node {
     }
 
     static class Sender implements Runnable {
-        public Sender() {
-            // TODO
+        String OUT_IP;
+        int OUT_PORT;
+        byte[] data;
+
+        public Sender(String out_ip, int out_port, byte[] data) {
+            this.OUT_IP = out_ip;
+            this OUT_PORT = out_port;
+            this.data = data
         }
 
         public void run() {
-            // TODO
+            DatagramSocket socket = new DatagramSocket();
+
+            // get ip destination wanted
+            InetAddress IPF = InetAddress.getByName(OUT_IP);
+
+            // send data
+            for (int i = 0; i < 4; i++) {
+                out_data = data[2500 * i; 2500 * (i + 1)]
+                DatagramPacket sendPkt = new DatagramPacket(data, 2500, IPF, OUT_PORT);
+                socket.send(sendPkt);
+            }
         }
     }
 
