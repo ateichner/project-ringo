@@ -95,12 +95,37 @@ public class node {
     }
 
     static class Receiver implements Runnable {
-        public Receiver() {
-            // TODO
+        String IN_IP;
+        int IN_PORT;
+        byte[] data;
+
+        public Receiver(String IN_IP, int IN_PORT, byte[] data) {
+            this.IN_IP = IN_IP;
+            this.IN_PORT = IN_PORT;
         }
 
         public void run() {
-            // TODO
+            try {
+                DatagramSocket socket = new DatagramSocket();
+                InetAddress IPF = InetAddress.getByName(IN_IP);
+                byte[] in_data = new byte[2500];
+                byte[] empty_buff = in_data;
+                socket.connect(IPF, IN_PORT);
+                while (true) {
+                    DatagramPacket packet = new DatagramPacket(in_data, PACKET_TRANSITTION_NUMBER, 2500);
+                    socket.receive(packet);
+                    //Check to see if there was data received
+                    if (!in_data.equals(empty_buff)) {
+                        IO_QUEUE.add(in_data);
+                    }
+                }
+            } catch (SocketException e) {
+                System.out.println("initializing socket failed");
+            } catch (UnknownHostException e) {
+                System.out.println("cannot solve the destination IP address");
+            } catch (IOException e) {
+                System.out.println("sending data failed");
+            }
         }
     }
 
