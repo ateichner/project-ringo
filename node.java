@@ -12,7 +12,7 @@ public class node {
     // globals
     private static int NUM_RINGO;
     static int NUM_ACTIVE_RINGO;
-    static int PACKET_TRANSITTION_NUMBER;
+    static int PACKET_TRANSITION_NUMBER = 0;
     static ArrayList<String[]> KNOWN_RINGO_LIST = new ArrayList<>();
     static int[][] RTT;
     static Queue<byte[]> IO_QUEUE = new ArrayDeque<>();
@@ -97,9 +97,8 @@ public class node {
     static class Receiver implements Runnable {
         String IN_IP;
         int IN_PORT;
-        byte[] data;
 
-        public Receiver(String IN_IP, int IN_PORT, byte[] data) {
+        public Receiver(String IN_IP, int IN_PORT) {
             this.IN_IP = IN_IP;
             this.IN_PORT = IN_PORT;
         }
@@ -109,15 +108,13 @@ public class node {
                 DatagramSocket socket = new DatagramSocket();
                 InetAddress IPF = InetAddress.getByName(IN_IP);
                 byte[] in_data = new byte[2500];
-                byte[] empty_buff = in_data;
                 socket.connect(IPF, IN_PORT);
                 while (true) {
-                    DatagramPacket packet = new DatagramPacket(in_data, PACKET_TRANSITTION_NUMBER, 2500);
+                    DatagramPacket packet = new DatagramPacket(in_data, PACKET_TRANSITION_NUMBER, 2500);
                     socket.receive(packet);
                     //Check to see if there was data received
-                    if (!in_data.equals(empty_buff)) {
-                        IO_QUEUE.add(in_data);
-                    }
+                    IO_QUEUE.add(in_data);
+                    PACKET_TRANSITION_NUMBER++;
                 }
             } catch (SocketException e) {
                 System.out.println("initializing socket failed");
@@ -128,17 +125,7 @@ public class node {
             }
         }
     }
-
-    static class Manager implements Runnable {
-        Manager() {
-
-        }
-
-        public void run() {
-
-        }
-    }
-
+    
 
     /**
      * add poc to known list if possible
