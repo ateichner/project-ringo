@@ -1,7 +1,10 @@
+import a.d.S;
+
 import java.net.*;
 import java.io.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.*;
 
 
 /**
@@ -9,57 +12,70 @@ import java.util.concurrent.Executors;
  */
 public class node {
     // globals
-    int NUM_RINGO;
-    int NUM_ACTIVE_RINGO;
-    int PACKET_TRANSITTION_NUMBER;
-    node[] KNOWN_RINGO_LIST;
-    int[][] RTT;
-    // TODO: queue
+    private static int NUM_RINGO;
+    static int NUM_ACTIVE_RINGO;
+    static int PACKET_TRANSITTION_NUMBER;
+    static node[] KNOWN_RINGO_LIST;
+    static int[][] RTT;
+    static byte[] IOQUEUE;
+
+    // status indicator
+    private static Sender sender;
+    private static Receiver receiver;
+    private static String flag;
+    private static int PORT_NUM;
 
     public static void main(String[] args) {
-        // TODO: interface configuration
+        if (args[0].equals("ringo") && args.length == 6) {
+            flag = args[1];
+            PORT_NUM = Integer.parseInt(args[2]);
+            String poc_name = args[3];
+            int poc_port = Integer.parseInt(args[4]);
+            NUM_RINGO = Integer.parseInt(args[5]);
 
-        // if (args.length == 1) {
-        //     int portNumber = Integer.parseInt(args[0]);
-        //     try {
-        //         final ExecutorService service = Executors.newCachedThreadPool();
-        //
-        //         ServerSocket serverSocket = new ServerSocket(portNumber);
-        //         while (true) {
-        //             Socket socket = serverSocket.accept();
-        //             service.submit(new ServerClass(socket));
-        //         }
-        //     } catch (IOException e) {
-        //         System.out.println("FATAL ERROR: INTERNAL SERVER ERROR, SHUTTING DOWN...");
-        //         System.exit(-1);
-        //     }
-        // } else {
-        //     System.out.println("Usage: rpnserverTCP <Port number as integer>");
-        // }
+            final ExecutorService service = Executors.newCachedThreadPool();
+
+            while (true) {
+                service.submit(new Sender(poc_name, poc_port, IOQUEUE));
+            }
+        } else if ((args[0].equals("offline") && args.length == 2)) {
+            
+        } else {
+            System.out.println("invalid command, please try again !");
+        }
     }
 
-    static class Sender implements Runnable {
+    static class Sender implements Runnable{
         String OUT_IP;
         int OUT_PORT;
         byte[] data;
 
-        public Sender(String out_ip, int out_port, byte[] data) {
+        Sender(String out_ip, int out_port, byte[] data) {
             this.OUT_IP = out_ip;
-            this OUT_PORT = out_port;
-            this.data = data
+            this.OUT_PORT = out_port;
+            this.data = data;
         }
 
         public void run() {
-            DatagramSocket socket = new DatagramSocket();
+            try {
+                DatagramSocket socket = new DatagramSocket();
 
-            // get ip destination wanted
-            InetAddress IPF = InetAddress.getByName(OUT_IP);
+                // get ip destination wanted
+                InetAddress IPF = InetAddress.getByName(OUT_IP);
 
-            // send data
-            for (int i = 0; i < 4; i++) {
-                out_data = data[2500 * i; 2500 * (i + 1)]
-                DatagramPacket sendPkt = new DatagramPacket(data, 2500, IPF, OUT_PORT);
-                socket.send(sendPkt);
+                // send data
+                for (int i = 0; i < 4; i++) {
+                    byte[] out_data = Arrays.copyOfRange(data, 2500 * i, 2500 * (i + 1));
+                    DatagramPacket sendPkt = new DatagramPacket(out_data, 2500, IPF, OUT_PORT);
+                    socket.send(sendPkt);
+                }
+            } catch (SocketException e) {
+                System.out.println("initializing socket failed");
+            } catch (UnknownHostException e) {
+                System.out.println("cannot solve the destination IP address");
+            } catch (IOException e) {
+                System.out.println("sending data failed");
+
             }
         }
     }
