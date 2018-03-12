@@ -121,7 +121,7 @@ public class node {
             } catch (UnknownHostException e) {
                 System.out.println("cannot solve the destination IP address");
             } catch (IOException e) {
-                System.out.println("sending data failed");
+                System.out.println("receiving data failed");
             }
         }
     }
