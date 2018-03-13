@@ -56,7 +56,7 @@ public class node {
             System.out.println("Neighbor unreachable, left undiscovered");
         }
 
-        //TODO Get neighbor's known Ringo map via a Socket
+        //TODO Get poc's known Ringo map via a Socket
         //
     }
 
