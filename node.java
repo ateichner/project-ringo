@@ -66,8 +66,12 @@ public class node {
     }
 
 
-    public get_mapping() {
+    public HashMap<int,long> get_mapping() {
         return neighbor_map;
+    }
+
+    public void print_ring() {
+        //TODO: flesh out print statements to print out ring
     }
 
     private long calculate_rtt(String ip_address) {
