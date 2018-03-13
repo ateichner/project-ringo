@@ -27,6 +27,8 @@ public class node {
     private static Queue<String> PROCESS_QUEUE = new ArrayDeque<>();
 
     private HashMap<int,long> neighbor_map;
+    private HashMap<String, int> poc_to_ringo_num;
+
     public node(int PORT_NUM, String poc_name, int NUM_RINGO) {
         //Initialize Node
         this.PORT_NUM = PORT_NUM;
@@ -35,9 +37,10 @@ public class node {
 
         //Create HashMap for neighbors
         neighbor_map = new HashMap<int,long>();
+        poc_to_ringo_num = new HashMap<String, int>();
 
         // Cost to self always 0
-        add_mapping(this.NUM_RINGO, 0);
+        add_neighbor_mapping(this.NUM_RINGO, 0);
 
         //Calcluate cost to PoC
         long cost = this.calculate_rtt(poc_name);
@@ -61,10 +64,23 @@ public class node {
     public String get_poc_name() {
         return this.poc_name;
     }
-    public add_mapping(int ringo_number, long cost) {
+
+    private void add_neighbor_mapping(int ringo_number, long cost) {
         neighbor_map.put(ringo_number, cost);
     }
 
+    private void add_poc_mapping(String ip_address, int PORT_NUM) {
+        try{
+            InetAddress inet = InetAddress.getByName(ip_address);
+            int ringo_number = -1;
+            if (inet.isReachable(5000)) {
+
+            }
+        } catch (Exception e) {
+            System.out.println(ip_address + " NOT reachable.");
+        }
+
+    }
 
     public HashMap<int,long> get_mapping() {
         return neighbor_map;
