@@ -18,6 +18,7 @@ public class node {
 
     private ArrayList<int> visited_list;
     private ArrayList<int> optimal_path;
+    private ArrayList<ArrayList<long>> rtt_matrix;
 
     public node(int PORT_NUM, String poc_name, int NUM_RINGO) {
         //Initialize Node
@@ -33,6 +34,13 @@ public class node {
         //Create lists for routing
         visited_list = new ArrayList<>();
         optimal_path = new ArrayList<>();
+
+        //Create 2-D ArrayList for rtt_matrix (array list of array list of longs)
+        //Each entry in the outer array list is the width of the rtt_matrix
+        //Each entry in the inner array list is the height of the rtt_matrix
+        //We must ensure that we traverse and add in blank entries for
+        //both dimensions when a node is added
+        rtt_matrix = new ArrayList<ArrayList<long>>();
 
         // Cost to self always 0
         add_neighbor_mapping(this.NUM_RINGO, 0);
@@ -69,12 +77,25 @@ public class node {
         //PUNTED POCNUM DISCOVERY TO MAIN METHOD IN RINGO class
     }
 
+    public void get_all_neighbors() {
+        return this.neighbor_map;
+    }
+
     public HashMap<int,long> get_ring() {
-        return neighbor_map;
+        //TODO: CALCULATE OPTIMAL RING BY CALLING METHOD
+        //TODO: RETURN OPTIMAL RING AS A HASHMAP
     }
 
     public void print_ring() {
         //TODO: flesh out print statements to print out ring
+    }
+
+    public void print_matrix() {
+        //TODO: print out matrix in a readable matrix format
+    }
+
+    public ArrayList<ArrayList<long>> get_matrix() {
+        return this.rtt_matrix;
     }
 
     private long calculate_rtt(String ip_address) {
@@ -95,11 +116,11 @@ public class node {
             return -1;
         }
     }
+
+    private calculate_optimal_ring() {
+        //TODO: CALCULATE OPTIMAL RING BASED ON WHAT IS CURRENTLY KNOWN
+    }
 }
-
-
-
-
 
 public class ringo {
     // globals needed for main method, other locals are stored in node class
@@ -386,4 +407,3 @@ public class ringo {
 //             }
 //         }
 //     }
-}
