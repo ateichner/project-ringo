@@ -4,30 +4,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.*;
 
-/*
- * NOTES:
- * 1. DO NOT USE STRING[] TO STORE RINGOS! STRINGS ARE IMMUTABLE,
- *    AND THEREFORE NOT SUITED TO STORE THESE.
- *    Instead, try to use a seperate Node (capital neeeded) or Ringo class
- *    This will allow you to store a HashMap of known
-
-
 /**
- * Concurrent TCP server for calculating RPN values
+ * node class responsible for defining a Ringo node
  */
 public class node {
     private int PORT_NUM;
     private String poc_name;
     private int NUM_RINGO;
 
-    private static int NUM_ACTIVE_RINGO = 0;
-    private static int PACKET_TRANSITION_NUMBER = 0;
-
-    private static Queue<byte[]> IO_QUEUE = new ArrayDeque<>();
-    private static Queue<String> PROCESS_QUEUE = new ArrayDeque<>();
-
     private HashMap<int,long> neighbor_map;
     private HashMap<String, int> poc_to_ringo_num;
+    private HashMap<String, int> poc_ip_port_table;
+
+    private ArrayList<int> visited_list;
+    private ArrayList<int> optimal_path;
 
     public node(int PORT_NUM, String poc_name, int NUM_RINGO) {
         //Initialize Node
@@ -35,9 +25,14 @@ public class node {
         this.poc_name = poc_name;
         this.NUM_RINGO = NUM_RINGO;
 
-        //Create HashMap for neighbors
+        //Create HashMaps for neighbors
         neighbor_map = new HashMap<int,long>();
         poc_to_ringo_num = new HashMap<String, int>();
+        poc_ip_port_table = new HashMap<String, int>();
+
+        //Create lists for routing
+        visited_list = new ArrayList<>();
+        optimal_path = new ArrayList<>();
 
         // Cost to self always 0
         add_neighbor_mapping(this.NUM_RINGO, 0);
@@ -48,7 +43,7 @@ public class node {
         if (cost > -1) {
             //TODO Get neigbor's Ringo number via a socket
             int poc_number = 0;
-            add_mapping(poc_number, cost);
+            add_poc_mapping(poc_number, cost);
         } else {
             System.out.println("Neighbor unreachable, left undiscovered");
         }
@@ -65,24 +60,16 @@ public class node {
         return this.poc_name;
     }
 
-    private void add_neighbor_mapping(int ringo_number, long cost) {
+    public void add_neighbor_mapping(int ringo_number, long cost) {
         neighbor_map.put(ringo_number, cost);
     }
 
-    private void add_poc_mapping(String ip_address, int PORT_NUM) {
-        try{
-            InetAddress inet = InetAddress.getByName(ip_address);
-            int ringo_number = -1;
-            if (inet.isReachable(5000)) {
-
-            }
-        } catch (Exception e) {
-            System.out.println(ip_address + " NOT reachable.");
-        }
-
+    public void add_poc_mapping(String ip_address, int poc_num) {
+        poc_to_ringo_num.put(ip_address, poc_num);
+        //PUNTED POCNUM DISCOVERY TO MAIN METHOD IN RINGO class
     }
 
-    public HashMap<int,long> get_mapping() {
+    public HashMap<int,long> get_ring() {
         return neighbor_map;
     }
 
@@ -112,67 +99,58 @@ public class node {
 
 
 
+
+
 public class ringo {
-    // globals
-    private static int NUM_RINGO = 0;
+    // globals needed for main method, other locals are stored in node class
+    // node class responsible for all Ringo mappings and rtt calculations
+    // this is the controller class
+
+    // Hence, we have a model-view-controller architecture, where the view
+    // is the mappings created by the model, and the model is the Ringo nodes
+    // themselves. Since everything is modular, the code should be easier
+    // to maintain.
+
     private static int NUM_ACTIVE_RINGO = 0;
     private static int PACKET_TRANSITION_NUMBER = 0;
-    private static ArrayList<String[]> KNOWN_RINGO_LIST = new ArrayList<>();
-    private static ArrayList<node> visited_list = new ArrayList<>();
-    private static String[][] RTT;
+
     private static Queue<byte[]> IO_QUEUE = new ArrayDeque<>();
     private static Queue<String> PROCESS_QUEUE = new ArrayDeque<>();
 
+    private static ArrayList<node> KNOWN_RINGO_LIST = new ArrayList<>();
     // status indicator
     private static String flag;
-    private static int PORT_NUM;
-
 
     public static void main(String[] args) {
         final ExecutorService receiver = Executors.newSingleThreadExecutor();
         final ExecutorService sender = Executors.newSingleThreadExecutor();
 
-
         while (true) {
             Scanner scanner = new Scanner(System.in);
             String[] in = scanner.nextLine().trim().split(" ");
 
-
             if (in.length == 6 && in[0].equals("ringo")) {
                 // get the command
                 flag = in[1];
-                PORT_NUM = Integer.parseInt(in[2]);
+                int ringo_portnumber = Integer.parseInt(in[2]);
                 String poc_name = in[3];
                 String poc_port_str = in[4];
                 int poc_port = Integer.parseInt(poc_port_str);
-                NUM_RINGO = Integer.parseInt(in[5]);
+                int ringo_id_num = Integer.parseInt(in[5]);
 
-                receiver.submit(new Receiver(PORT_NUM));
+                //Create new node here
+                node new_ringo = new node(ringo_portnumber, poc_name, ringo_id_num);
 
-                // 1. initializing POC (neighbors)
-                add_poc(poc_name, poc_port_str);
+                receiver.submit(new Receiver(new_ringo.get_Port_Num()));
 
-                //
-                // 2b. Send KNOWN_RINGO_LIST
-                send_ringo_rtt(sender, poc_name, poc_port);
-                // 2c. process KNOWN_RINGO_LIST info from POC
+                //TODO: DO NEIGHBOR DISCOVERY, TELL NODE MODEL THE CHANGES
 
-                // 2d. Append KNOWN_RINGO_LIST with new information
+                //TODO: CALL NODE'S OPTIMAL RING METHOD AFTER DONE UPDATING MODEL
 
-                // 2e. Go through KNOWN_RINGO_LIST and check if RTT is known foreach
+                //TODO: VERFIY OPTIMAL RING USING MAPPINGS IN NODE MODEL
 
-                // 2f. Append information to KNOWN_RINGO_LIST
-
-                // 2g. LOOP UNTIL FINISH
-
-                // 2h. Send new KNOWN_RINGO_LIST to each Ringo
-                for (String[] ringo: KNOWN_RINGO_LIST) {
-                    send_ringo_rtt(sender, ringo[0], Integer.parseInt(ringo[1]));
-                }
-
-                //initializing KNOWN_RINGO_LIST
-
-                // 3. Using that, form the optimal ring
+                //TODO: ONCE VERIFIED OPTIMAL RING, SEND TO ALL OTHER RINGOS
+                //      IN KNOWN_RINGO_LIST
             } else if (in.length == 2 && in[0].equals("offline")) {
                 try {
                     Thread.sleep(Integer.parseInt(in[1]));
@@ -180,13 +158,18 @@ public class ringo {
                     System.out.println("node offline failed");
                 }
             } else if (in.length == 2 && in[0].equals("send")) {
-
+                //TODO: SET UP A SENDER
             } else if (in[0].equals("show-ring")) {
-
+                //TODO: CHECK TO SEE IF NODE EXISTS USING TRY-CATCH
+                //TODO: IF IT DOES, CALL THE print_ring METHOD
             } else if (in[0].equals("show-matrix")) {
-
+                //TODO: CHECK TO SEE IF NODE EXISTS USING TRY-CATCH
+                //TODO: IF IT DOES, CALL THE print_matrix METHOD
             } else if (in[0].equals("disconnect")) {
-
+                //TODO: CHECK TO SEE IF NODE EXISTS USING TRY-catch
+                //TODO: IF IT DOES, SEND OUT A DISCONNECT SIGNAL WITH THE
+                //      RINGO ID NUMBER ATTACHED TO ALL OTHER RINGOS
+                //TODO: ONCE MESSAGE RETURNS TO SPECIFIED NODE, DISCONNECT IT
             } else {
                 System.out.println("invalid command, please try again !");
             }
@@ -282,6 +265,7 @@ public class ringo {
      * add poc to known list if possible
      * @param poc_name the IP address or DNS name of poc
      * @param poc_port the port number of poc
+     * THIS MAY BE DEPRECATED
      */
     private static void add_poc(String poc_name, String poc_port) {
         for (int i = 0; i < KNOWN_RINGO_LIST.size(); i++) {
