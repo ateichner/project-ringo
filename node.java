@@ -4,16 +4,96 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.*;
 
+/*
+ * NOTES:
+ * 1. DO NOT USE STRING[] TO STORE RINGOS! STRINGS ARE IMMUTABLE,
+ *    AND THEREFORE NOT SUITED TO STORE THESE.
+ *    Instead, try to use a seperate Node (capital neeeded) or Ringo class
+ *    This will allow you to store a HashMap of known
+
 
 /**
  * Concurrent TCP server for calculating RPN values
  */
 public class node {
+    private int PORT_NUM;
+    private String poc_name;
+    private int NUM_RINGO;
+
+
+    private HashMap<int,long> neighbor_map;
+    public node(int PORT_NUM, String poc_name, int NUM_RINGO) {
+        //Initialize Node
+        this.PORT_NUM = PORT_NUM;
+        this.poc_name = poc_name;
+        this.NUM_RINGO = NUM_RINGO;
+
+        //Create HashMap for neighbors
+        neighbor_map = new HashMap<int,long>();
+
+        // Cost to self always 0
+        add_mapping(this.NUM_RINGO, 0);
+
+        //Calcluate cost to PoC
+        long cost = this.calculate_rtt(poc_name);
+
+        if (cost > -1) {
+            //TODO Get neigbor's Ringo number via a socket
+            int poc_number = 0;
+            add_mapping(poc_number, cost);
+        } else {
+            System.out.println("Neighbor unreachable, left undiscovered");
+        }
+
+        //TODO Get neighbor's known Ringo map via a Socket
+        //
+    }
+
+    public int get_Port_Num() {
+        return this.PORT_NUM;
+    }
+
+    public String get_poc_name() {
+        return this.poc_name;
+    }
+    public add_mapping(int ringo_number, long cost) {
+        neighbor_map.put(ringo_number, cost);
+    }
+
+
+    public get_mapping() {
+        return neighbor_map;
+    }
+
+    private long calculate_rtt(String ip_address) {
+        try {
+            InetAddress inet = InetAddress.getByName(ip_address);
+            long finish = 0;
+            long start = new GregorianCalendar().getTimeInMillis();
+
+            if (inet.isReachable(5000)){
+                finish = new GregorianCalendar().getTimeInMillis();
+                return (finish - start);
+            } else {
+                System.out.println(ip_address + " NOT reachable.");
+                return -1
+            }
+        } catch ( Exception e ) {
+            System.out.println("Exception:" + e.getMessage());
+            return -1;
+        }
+    }
+}
+
+
+
+public class ringo {
     // globals
     private static int NUM_RINGO = 0;
     private static int NUM_ACTIVE_RINGO = 0;
     private static int PACKET_TRANSITION_NUMBER = 0;
     private static ArrayList<String[]> KNOWN_RINGO_LIST = new ArrayList<>();
+    private static ArrayList<node> visited_list = new ArrayList<>();
     private static String[][] RTT;
     private static Queue<byte[]> IO_QUEUE = new ArrayDeque<>();
     private static Queue<String> PROCESS_QUEUE = new ArrayDeque<>();
@@ -21,6 +101,7 @@ public class node {
     // status indicator
     private static String flag;
     private static int PORT_NUM;
+
 
     public static void main(String[] args) {
         final ExecutorService receiver = Executors.newSingleThreadExecutor();
@@ -43,12 +124,12 @@ public class node {
 
                 receiver.submit(new Receiver(PORT_NUM));
 
-                // 1. initializing POC
+                // 1. initializing POC (neighbors)
                 add_poc(poc_name, poc_port_str);
 
+                //
                 // 2b. Send KNOWN_RINGO_LIST
                 send_ringo_rtt(sender, poc_name, poc_port);
-
                 // 2c. process KNOWN_RINGO_LIST info from POC
 
                 // 2d. Append KNOWN_RINGO_LIST with new information
@@ -183,6 +264,7 @@ public class node {
                 System.out.println(poc_name + " is already in known_list");
                 break;
             } else {
+
                 KNOWN_RINGO_LIST.add(new String[] {poc_name, poc_port});
             }
         }
@@ -201,6 +283,7 @@ public class node {
         IO_QUEUE.add(temp.getBytes());
         sender.shutdown();
     }
+
 
 
     private static void update_rtt() {
@@ -232,6 +315,7 @@ public class node {
             return "-1";
         }
     }
+}
 
 
 
