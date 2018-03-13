@@ -10,41 +10,76 @@ import java.util.*;
  */
 public class node {
     // globals
-    private static int NUM_RINGO;
-    static int NUM_ACTIVE_RINGO;
-    static int PACKET_TRANSITION_NUMBER = 0;
-    static ArrayList<String[]> KNOWN_RINGO_LIST = new ArrayList<>();
-    static int[][] RTT;
-    static Queue<byte[]> IO_QUEUE = new ArrayDeque<>();
+    private static int NUM_RINGO = 0;
+    private static int NUM_ACTIVE_RINGO = 0;
+    private static int PACKET_TRANSITION_NUMBER = 0;
+    private static ArrayList<String[]> KNOWN_RINGO_LIST = new ArrayList<>();
+    private static String[][] RTT;
+    private static Queue<byte[]> IO_QUEUE = new ArrayDeque<>();
+    private static Queue<String> PROCESS_QUEUE = new ArrayDeque<>();
 
     // status indicator
-    private static Sender sender;
-    private static Receiver receiver;
     private static String flag;
     private static int PORT_NUM;
 
     public static void main(String[] args) {
-        final ExecutorService service = Executors.newCachedThreadPool();
+        final ExecutorService receiver = Executors.newSingleThreadExecutor();
+        final ExecutorService sender = Executors.newSingleThreadExecutor();
+
 
         while (true) {
             Scanner scanner = new Scanner(System.in);
             String[] in = scanner.nextLine().trim().split(" ");
 
+
             if (in.length == 6 && in[0].equals("ringo")) {
+                // get the command
                 flag = in[1];
                 PORT_NUM = Integer.parseInt(in[2]);
                 String poc_name = in[3];
                 String poc_port_str = in[4];
                 int poc_port = Integer.parseInt(poc_port_str);
-                add_poc(poc_name, poc_port_str);
                 NUM_RINGO = Integer.parseInt(in[5]);
 
+                receiver.submit(new Receiver(PORT_NUM));
+
+                // 1. initializing POC
+                add_poc(poc_name, poc_port_str);
+
+                // 2b. Send KNOWN_RINGO_LIST
+                send_ringo_rtt(sender, poc_name, poc_port);
+
+                // 2c. process KNOWN_RINGO_LIST info from POC
+
+                // 2d. Append KNOWN_RINGO_LIST with new information
+
+                // 2e. Go through KNOWN_RINGO_LIST and check if RTT is known foreach
+
+                // 2f. Append information to KNOWN_RINGO_LIST
+
+                // 2g. LOOP UNTIL FINISH
+
+                // 2h. Send new KNOWN_RINGO_LIST to each Ringo
+                for (String[] ringo: KNOWN_RINGO_LIST) {
+                    send_ringo_rtt(sender, ringo[0], Integer.parseInt(ringo[1]));
+                }
+
+                //initializing KNOWN_RINGO_LIST
+
+                // 3. Using that, form the optimal ring
             } else if (in.length == 2 && in[0].equals("offline")) {
                 try {
                     Thread.sleep(Integer.parseInt(in[1]));
                 } catch (InterruptedException e) {
                     System.out.println("node offline failed");
                 }
+            } else if (in.length == 2 && in[0].equals("send")) {
+
+            } else if (in[0].equals("show-ring")) {
+
+            } else if (in[0].equals("show-matrix")) {
+
+            } else if (in[0].equals("disconnect")) {
 
             } else {
                 System.out.println("invalid command, please try again !");
@@ -57,7 +92,7 @@ public class node {
     /**
      * the private sender class
      *
-     * in charge of sending data
+     * in charge of sending data from the IO_QUEUE
      */
     static class Sender implements Runnable{
         String OUT_IP;
@@ -94,27 +129,37 @@ public class node {
         }
     }
 
+
+    /**
+     * the receiver class
+     *
+     * in charge of receiving data and put it into IO_QUEUE
+     */
     static class Receiver implements Runnable {
-        String IN_IP;
         int IN_PORT;
 
-        public Receiver(String IN_IP, int IN_PORT) {
-            this.IN_IP = IN_IP;
+        public Receiver(int IN_PORT) {
             this.IN_PORT = IN_PORT;
         }
 
         public void run() {
             try {
-                DatagramSocket socket = new DatagramSocket();
-                InetAddress IPF = InetAddress.getByName(IN_IP);
+                DatagramSocket socket = new DatagramSocket(IN_PORT);
                 byte[] in_data = new byte[2500];
-                socket.connect(IPF, IN_PORT);
                 while (true) {
-                    DatagramPacket packet = new DatagramPacket(in_data, PACKET_TRANSITION_NUMBER, 2500);
+                    DatagramPacket packet = new DatagramPacket(in_data, 2500);
                     socket.receive(packet);
+
                     //Check to see if there was data received
-                    IO_QUEUE.add(in_data);
-                    PACKET_TRANSITION_NUMBER++;
+                    String temp = new String(packet.getData());
+                    if (temp.substring(0, 9).equals("RTT Check")) {
+                        PROCESS_QUEUE.add(temp);
+                    } else if (temp.substring(0, 10).equals("keep alive")) {
+                        PROCESS_QUEUE.add(temp);
+                    } else {
+                        IO_QUEUE.add(packet.getData());
+                        PACKET_TRANSITION_NUMBER++;
+                    }
                 }
             } catch (SocketException e) {
                 System.out.println("initializing socket failed");
@@ -125,7 +170,7 @@ public class node {
             }
         }
     }
-    
+
 
     /**
      * add poc to known list if possible
@@ -140,9 +185,55 @@ public class node {
             } else {
                 KNOWN_RINGO_LIST.add(new String[] {poc_name, poc_port});
             }
-
         }
     }
+
+
+    /**
+     * send the rtt and known ringo list to a specific ringo
+     * @param sender the multi-thread executive service
+     * @param ip the target ip address
+     * @param port the target port number
+     */
+    private static void send_ringo_rtt(ExecutorService sender, String ip, int port) {
+        sender.submit(new Sender(ip, port));
+        String temp = "RTT Check: " + KNOWN_RINGO_LIST.toString() + ":" + Arrays.deepToString(RTT);
+        IO_QUEUE.add(temp.getBytes());
+        sender.shutdown();
+    }
+
+
+    private static void update_rtt() {
+
+    }
+
+
+    /**
+     * calculating the rtt between current ringo and specific ringo
+     *
+     * @param ip_address the target node ip address
+     * @return the rtt
+     */
+    private static String calculate_rtt(String ip_address) {
+        try {
+            InetAddress inet = InetAddress.getByName(ip_address);
+            long finish = 0;
+            long start = new GregorianCalendar().getTimeInMillis();
+
+            if (inet.isReachable(5000)){
+                finish = new GregorianCalendar().getTimeInMillis();
+                return Long.toString(finish - start);
+            } else {
+                System.out.println(ip_address + " NOT reachable.");
+                return "-1";
+            }
+        } catch ( Exception e ) {
+            System.out.println("Exception:" + e.getMessage());
+            return "-1";
+        }
+    }
+
+
 
 //     static class ServerClass implements Runnable {
 //         Socket s;
