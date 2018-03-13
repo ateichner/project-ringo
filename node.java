@@ -12,13 +12,13 @@ public class node {
     private String poc_name;
     private int NUM_RINGO;
 
-    private HashMap<int,long> neighbor_map;
-    private HashMap<String, int> poc_to_ringo_num;
-    private HashMap<String, int> poc_ip_port_table;
+    private HashMap<Integer,Long> neighbor_map;
+    private HashMap<String, Integer> poc_to_ringo_num;
+    private HashMap<String, Integer> poc_ip_port_table;
 
-    private ArrayList<int> visited_list;
-    private ArrayList<int> optimal_path;
-    private ArrayList<ArrayList<long>> rtt_matrix;
+    private ArrayList<Integer> visited_list;
+    private ArrayList<Integer> optimal_path;
+    private ArrayList<ArrayList<Long>> rtt_matrix;
 
     public node(int PORT_NUM, String poc_name, int NUM_RINGO) {
         //Initialize Node
@@ -27,9 +27,9 @@ public class node {
         this.NUM_RINGO = NUM_RINGO;
 
         //Create HashMaps for neighbors
-        neighbor_map = new HashMap<int,long>();
-        poc_to_ringo_num = new HashMap<String, int>();
-        poc_ip_port_table = new HashMap<String, int>();
+        neighbor_map = new HashMap<>();
+        poc_to_ringo_num = new HashMap<>();
+        poc_ip_port_table = new HashMap<>();
 
         //Create lists for routing
         visited_list = new ArrayList<>();
@@ -40,18 +40,18 @@ public class node {
         //Each entry in the inner array list is the height of the rtt_matrix
         //We must ensure that we traverse and add in blank entries for
         //both dimensions when a node is added
-        rtt_matrix = new ArrayList<ArrayList<long>>();
+        rtt_matrix = new ArrayList<>();
 
         // Cost to self always 0
         add_neighbor_mapping(this.NUM_RINGO, 0);
 
-        //Calcluate cost to PoC
+        //Calculate cost to PoC
         long cost = this.calculate_rtt(poc_name);
 
         if (cost > -1) {
             //TODO Get neigbor's Ringo number via a socket
             int poc_number = 0;
-            add_poc_mapping(poc_number, cost);
+            add_poc_mapping(Integer.toString(poc_number), cost);
         } else {
             System.out.println("Neighbor unreachable, left undiscovered");
         }
@@ -77,13 +77,14 @@ public class node {
         //PUNTED POCNUM DISCOVERY TO MAIN METHOD IN RINGO class
     }
 
-    public void get_all_neighbors() {
+    public HashMap<Integer,Long> get_all_neighbors() {
         return this.neighbor_map;
     }
 
-    public HashMap<int,long> get_ring() {
+    public HashMap<Integer,Long> get_ring() {
         //TODO: CALCULATE OPTIMAL RING BY CALLING METHOD
         //TODO: RETURN OPTIMAL RING AS A HASHMAP
+        return null;
     }
 
     public void print_ring() {
@@ -94,7 +95,7 @@ public class node {
         //TODO: print out matrix in a readable matrix format
     }
 
-    public ArrayList<ArrayList<long>> get_matrix() {
+    public ArrayList<ArrayList<Long>> get_matrix() {
         return this.rtt_matrix;
     }
 
@@ -109,7 +110,7 @@ public class node {
                 return (finish - start);
             } else {
                 System.out.println(ip_address + " NOT reachable.");
-                return -1
+                return -1;
             }
         } catch ( Exception e ) {
             System.out.println("Exception:" + e.getMessage());
@@ -117,7 +118,7 @@ public class node {
         }
     }
 
-    private calculate_optimal_ring() {
+    private void calculate_optimal_ring() {
         //TODO: CALCULATE OPTIMAL RING BASED ON WHAT IS CURRENTLY KNOWN
     }
 }
@@ -346,64 +347,3 @@ public class ringo {
         }
     }
 }
-
-
-
-//     static class ServerClass implements Runnable {
-//         Socket s;
-//         public ServerClass(Socket socket) {
-//             s = socket;
-//         }
-//
-//         public void run() {
-//             int total = 0;
-//             try {
-//                 DataInputStream in = new DataInputStream(s.getInputStream());
-//                 DataOutputStream out = new DataOutputStream(s.getOutputStream());
-//
-//                 StringBuffer inputBuffer = new StringBuffer();
-//
-//                 rpnProtocol protocol = new rpnProtocol();
-//
-//                 String input;
-//                 //Need some sort of loop in while condition
-//                 while ((input = in.readLine()) != null) {
-//                     inputBuffer.append(input);
-//                     //Remove below after testing
-//                     System.out.println(input);
-//                 }
-//
-//                 String[] rpn = inputBuffer.toString().split(" ");
-//                 String result = protocol.evaluateRpn(rpn);
-//
-//                 if (result.contains("ERROR")) {
-//                     out.writeChars(result);
-//
-//                 } else if (result.contains("OK ANOTHER")){
-//                     String[] resultArr = result.split(",");
-//                     try {
-//                         total = Integer.parseInt(resultArr[0]);
-//                         out.writeChars("ACK ANOTHER " + total);
-//                     } catch (NumberFormatException nfe1) {
-//                         System.out.print("Number Format Exception: " + nfe1);
-//                         out.writeChars("NACK (ERROR: MALFORMED ARGUMENT, BROKEN SERVER CODE)");
-//                     }
-//                 } else if (result.contains("OK END")) {
-//                     String[] resultArr = result.split(",");
-//                     try {
-//                         total = Integer.parseInt(resultArr[0]);
-//                         out.writeChars("ACK END " + total);
-//
-//                     } catch (NumberFormatException nfe2) {
-//                         System.out.print("NUMBER FORMAT  Exception: " + nfe2);
-//                         out.writeChars("NACK (ERROR: MALFORMED ARGUMENT, BROKEN SERVER CODE) FIN");
-//                     }
-//                 }
-//                 s.close();
-//             } catch (MalformedURLException me){
-//                 System.out.println("Malformed URL: " + me);
-//             } catch (IOException ioe) {
-//                System.out.println("IOException: " + ioe);
-//             }
-//         }
-//     }
