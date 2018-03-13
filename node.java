@@ -20,6 +20,11 @@ public class node {
     private String poc_name;
     private int NUM_RINGO;
 
+    private static int NUM_ACTIVE_RINGO = 0;
+    private static int PACKET_TRANSITION_NUMBER = 0;
+
+    private static Queue<byte[]> IO_QUEUE = new ArrayDeque<>();
+    private static Queue<String> PROCESS_QUEUE = new ArrayDeque<>();
 
     private HashMap<int,long> neighbor_map;
     public node(int PORT_NUM, String poc_name, int NUM_RINGO) {
