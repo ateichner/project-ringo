@@ -10,7 +10,7 @@ public class node {
     private int NUM_RINGO;
 
     private HashMap<Integer,Long> neighbor_map;
-    private HashMap<String, Integer> poc_to_ringo_num;
+    private HashMap<String, Long> poc_to_ringo_num;
     private HashMap<String, Integer> poc_ip_port_table;
 
     private ArrayList<Integer> visited_list;
@@ -45,7 +45,7 @@ public class node {
         //Calculate cost to PoC
         long cost = this.calculate_rtt(poc_name);
 
-        if (cost > -1) {
+        if (cost != -1) {
             //TODO Get neigbor's Ringo number via a socket
             int poc_number = 0;
             add_poc_mapping(Integer.toString(poc_number), cost);
