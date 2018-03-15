@@ -30,6 +30,9 @@ public class Ringo {
                     // send data
                     if (messageQueue.size() != 0) {
                         Message m = messageQueue.poll();
+                        String outData = m.getOutData();
+                        byte[] out_data = outData.getBytes();
+
                         for (Node n : m.getDestinations()) {
                             DatagramPacket sendPkt = new DatagramPacket(out_data, 2500, InetAddress.getByName(n.getIp()), n.getPort());
                             System.out.println("out ip: " + InetAddress.getByName(n.getIp()) + "out port: " + n.getPort());
@@ -158,8 +161,7 @@ public class Ringo {
 
                 // set up self selfNode
                 selfNode = new Node(getSelfIP(), selfPort);
-                addNeighbor(selfNode, (float) 0);
-                // costToNeighborMap.put(selfNode, (float) 0);
+
                 // start the receiver_thread
                 receiver_thread.submit(new MessageReceiver(selfPort));
 
@@ -172,7 +174,6 @@ public class Ringo {
                         continue;
                     }
                     addNeighbor(new Node(getIP(pocName), pocPort), calculate_rtt(pocName));
-                    // costToNeighborMap.put();new Node(getIP(poc_name), poc_port), calculate_rtt(poc_name)
                 }
 
                 // TODO: CALL NODE'S OPTIMAL RING METHOD AFTER DONE UPDATING MODEL

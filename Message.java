@@ -9,7 +9,7 @@ import java.util.*;
  */
 public class Message implements Serializable {
     private Node from;
-    private HashMap<Node,Float> costMap;
+    private HashMap<Node, Float> costMap;
     private Collection<Node> destinations;
 
     /**
@@ -18,7 +18,7 @@ public class Message implements Serializable {
      * @param from is the node sending the message
      * @param costs is a Map with the costs to all destination nodes to be included in this message
      */
-    Message(Node from, Map<Node,Float> costs, Collection<Node> destinations) {
+    Message(Node from, Map<Node, Float> costs, Collection<Node> destinations) {
         this.from = from;
         this.costMap = new HashMap<>(costs);
         this.destinations = destinations;
@@ -37,6 +37,18 @@ public class Message implements Serializable {
         return destinations;
     }
 
+
+    public String getOutData() {
+        String out = "";
+
+        out += "from_node:" + from.getIp() + "," + Integer.toString(from.getPort()) + "||";
+
+        for (Node n: new TreeSet<>(costMap.keySet())) {
+            out += n.getIp() + "," + Integer.toString(n.getPort()) + "," + Float.toString(costMap.get(n)) + ";";
+        }
+
+        return out;
+    }
 
     /**
      * get the cost to one destination
