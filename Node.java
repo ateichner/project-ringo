@@ -8,7 +8,7 @@ import java.util.*;
  * method to implement distance vector routing updates.
  *
  */
-public class Node {
+public class Node implements Comparable<Node>  {
     // Field to hold this node's ip
     private String ip;
     private int port;
@@ -44,7 +44,15 @@ public class Node {
      * @param target the Node we compare to
      * @return whether self is target
      */
-    private boolean equals(Node target) {
-        return ip.equals(target.getIp());
+    public boolean equals(Node target) {
+        return ip.equals(target.getIp()) && port == target.getPort();
+    }
+
+    public int compareTo(Node node) {
+        if (equals(node)){
+            return 0;
+        } else {
+            return 1;
+        }
     }
 }

@@ -37,6 +37,7 @@ public class Message implements Serializable {
         return destinations;
     }
 
+
     /**
      * get the cost to one destination
      *

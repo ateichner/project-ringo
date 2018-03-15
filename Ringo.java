@@ -1,5 +1,3 @@
-import org.apache.commons.lang.SerializationUtils;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -16,6 +14,7 @@ public class Ringo {
          * the default multi-thread method
          */
         public void run() {
+            System.out.println("message sender is active");
             send();
         }
 
@@ -24,28 +23,27 @@ public class Ringo {
          * sending method
          */
         private void send() {
-            try {
-                DatagramSocket socket = new DatagramSocket();
+            while (true) {
+                try {
+                    DatagramSocket socket = new DatagramSocket();
 
-                // send data
-                while (true) {
-                    if (messageQueue.size() != 0 && newMessages) {
-                        Message message = messageQueue.poll();
-                        byte[] out_data = serialize(message);
-                        for (Node n: message.getDestinations()) {
+                    // send data
+                    if (messageQueue.size() != 0) {
+                        Message m = messageQueue.poll();
+                        for (Node n : m.getDestinations()) {
                             DatagramPacket sendPkt = new DatagramPacket(out_data, 2500, InetAddress.getByName(n.getIp()), n.getPort());
+                            System.out.println("out ip: " + InetAddress.getByName(n.getIp()) + "out port: " + n.getPort());
                             socket.send(sendPkt);
                         }
-
                     }
-                }
 
-            } catch (SocketException e) {
-                System.out.println("initializing socket failed");
-            } catch (UnknownHostException e) {
-                System.out.println("cannot solve the destination IP address");
-            } catch (IOException e) {
-                System.out.println("sending data failed");
+                } catch (SocketException e) {
+                    System.out.println("initializing socket failed");
+                } catch (UnknownHostException e) {
+                    System.out.println("cannot solve the destination IP address");
+                } catch (IOException e) {
+                    System.out.println("sending data failed");
+                }
             }
         }
     }
@@ -72,6 +70,7 @@ public class Ringo {
          * the default multi-thread method
          */
         public void run() {
+            System.out.println("message receiver is active at port " + IN_PORT);
             receive();
         }
 
@@ -104,15 +103,14 @@ public class Ringo {
          * @param data the incoming byte array
          */
         private void message_check(byte[] data) {
-            Message message = deserialize(data);
-            doDistanceVectorUpdate();
+
         }
     }
 
 
     // globals
     private static final ExecutorService receiver_thread = Executors.newSingleThreadExecutor();
-    private static final ExecutorService sender_thread = Executors.newCachedThreadPool();
+    private static final ExecutorService sender_thread = Executors.newSingleThreadExecutor();
 
     private static Node selfNode;
     private static int NUM_RINGO = 0;
@@ -149,27 +147,27 @@ public class Ringo {
             if (in.length == 6 && in[0].equals("ringo")) {
                 // digest the command
                 flag = in[1];
-                int self_ringo_port = Integer.parseInt(in[2]);
-                String poc_name = in[3];
-                String poc_port_str = in[4];
-                int poc_port = Integer.parseInt(poc_port_str);
-                int ringo_id_num = Integer.parseInt(in[5]);
+                int selfPort = Integer.parseInt(in[2]);
+                String pocName = in[3];
+                String pocPortStr = in[4];
+                int pocPort = Integer.parseInt(pocPortStr);
+                int numRingo = Integer.parseInt(in[5]);
 
                 // set up self selfNode
-                selfNode = new Node(getSelfIP(), self_ringo_port);
+                selfNode = new Node(getSelfIP(), selfPort);
                 costToNeighborMap.put(selfNode, (float) 0);
                 // start the receiver_thread
-                receiver_thread.submit(new MessageReceiver(poc_port));
+                receiver_thread.submit(new MessageReceiver(selfPort));
 
                 // if this ringo has a PoC
-                boolean hasPoC = !poc_name.equals("0") & poc_port != 0;
+                boolean hasPoC = !pocName.equals("0") & pocPort != 0;
                 if (hasPoC) {
                     // Create new selfNode here
-                    if (getIP(poc_name) == null) {
+                    if (getIP(pocName) == null) {
                         System.out.println("unknown poc name");
                         continue;
                     }
-                    costToNeighborMap.put(new Node(getIP(poc_name), poc_port), calculate_rtt(poc_name));
+                    addNeighbor(new Node(getIP(pocName), pocPort), calculate_rtt(pocName));
                 }
 
                 // TODO: CALL NODE'S OPTIMAL RING METHOD AFTER DONE UPDATING MODEL
@@ -360,7 +358,6 @@ public class Ringo {
     public static void sendMessage(Message m) {
         sender_thread.submit(new MessageSender());
         messageQueue.add(m);
-        newMessages = true;
     }
 
 
@@ -394,14 +391,13 @@ public class Ringo {
      *
      * @param neighbor is the neighboring Node
      * @param cost is the non-negative integer cost to get to this neighbor
-     * @throws Exception when
      */
-    public static void addNeighbor(Node neighbor, float cost) throws Exception {
+    private static void addNeighbor(Node neighbor, float cost) {
         if ((costToNeighborMap.containsKey(neighbor)) || (cost < 0)) {
             String message = "Error adding neighbor to selfNode" + selfNode + "("
                     + neighbor + ", " + cost + ")"
                     + "\nCan't have duplicate links or negative costs";
-            throw new Exception(message);
+            System.out.println(message);
         }
 
         // Add an entry for the new neighbor in the local data structures
@@ -511,9 +507,9 @@ public class Ringo {
         HashMap<Node, Float> vector = new HashMap<>();
 
         // Gets the selfNode's distance vector.
-        for (Node destination : getDestinations())
+        for (Node destination : getDestinations()) {
             vector.put(destination, getCostToDestination(destination));
-
+        }
         // (Not doing poisoned reverse in this implementation)
 
         // Compiles the selfNode's distance vector.
@@ -621,7 +617,7 @@ public class Ringo {
     private static float calculate_rtt(String ip_address) {
         try {
             InetAddress inet = InetAddress.getByName(ip_address);
-            float finish = 0;
+            float finish;
             float start = new GregorianCalendar().getTimeInMillis();
 
             if (inet.isReachable(5000)){
@@ -638,24 +634,42 @@ public class Ringo {
     }
 
 
-    /**
-     * Convert object to byte array
-     *
-     * @param object the node object will be converted
-     * @return te converted byte array
-     */
-    private static byte[] serialize(Serializable object) {
-        return SerializationUtils.serialize(object);
-    }
-
-
-    /**
-     * Convert byte array to object
-     *
-     * @param bytes the byte array will be converted
-     * @return the converted node
-     */
-    private static Message deserialize(byte[] bytes) {
-        return (Message) SerializationUtils.deserialize(bytes);
-    }
+//    /**
+//     * Convert object to byte array
+//     *
+//     * @param object the node object will be converted
+//     * @return te converted byte array
+//     */
+//    private static byte[] serialize(Object obj) {
+//        try {
+//            ByteArrayOutputStream out = new ByteArrayOutputStream();
+//            ObjectOutputStream os = new ObjectOutputStream(out);
+//            os.writeObject(obj);
+//            return out.toByteArray();
+//        } catch (IOException e) {
+//            System.out.println("serialize message failed");
+//        }
+//        return new byte[0];
+//    }
+//
+//
+//    /**
+//     * Convert byte array to object
+//     *
+//     * @param bytes the byte array will be converted
+//     * @return the converted node
+//     */
+//    private static Message deserialize(byte[] bytes) {
+//        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+//        ObjectInput in;
+//        try {
+//            in = new ObjectInputStream(bis);
+//            return (Message)in.readObject();
+//        } catch (IOException e) {
+//            System.out.println("deserialize message failed");
+//        } catch (ClassNotFoundException e) {
+//            System.out.println("message class note found");
+//        }
+//        return null;
+//    }
 }
