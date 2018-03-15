@@ -174,7 +174,7 @@ public class Ringo {
                 Float selfCost = (0.0f);
                 addNeighbor(selfNode, selfCost);
                 System.out.println("Started teh selfNode");
-                doDistanceVectorUpdate();
+//                doDistanceVectorUpdate();
                 // start the receiver_thread
                 receiver_thread.submit(new MessageReceiver(selfPort));
 
@@ -334,7 +334,8 @@ public class Ringo {
                 if (minimumDistance != getCostToDestination(destination)) {
 
                     updateDistanceVector(destination, minimumDistance);
-                    System.out.println(nextHop);
+                    System.out.println("Destination: " + destination);
+                    System.out.println("nextHop: " + nextHop);
                     if (nextHop != null) {
                         updateForwardingTable(destination, nextHop);
                     }
