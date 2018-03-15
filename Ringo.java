@@ -160,7 +160,8 @@ public class Ringo {
 
                 // set up self selfNode
                 selfNode = new Node(getSelfIP(), self_ringo_port);
-                costToNeighborMap.put(selfNode, (float) 0);
+                addNeighbor(selfNode, (float) 0);
+                // costToNeighborMap.put(selfNode, (float) 0);
                 // start the receiver_thread
                 receiver_thread.submit(new MessageReceiver(poc_port));
 
@@ -172,7 +173,8 @@ public class Ringo {
                         System.out.println("unknown poc name");
                         continue;
                     }
-                    costToNeighborMap.put(new Node(getIP(poc_name), poc_port), calculate_rtt(poc_name));
+                    addNeighbor(new Node(getIP(poc_name), poc_port), calculate_rtt(poc_name))
+                    // costToNeighborMap.put();new Node(getIP(poc_name), poc_port), calculate_rtt(poc_name)
                 }
 
                 // TODO: CALL NODE'S OPTIMAL RING METHOD AFTER DONE UPDATING MODEL
