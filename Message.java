@@ -1,4 +1,3 @@
-import java.io.Serializable;
 import java.util.*;
 
 
@@ -7,7 +6,7 @@ import java.util.*;
  * one of its neighbors in a distance vector routing algorithm implementation.
  *
  */
-public class Message implements Serializable {
+public class Message {
     private Node from;
     private HashMap<Node, Float> costMap;
     private Collection<Node> destinations;
@@ -22,6 +21,20 @@ public class Message implements Serializable {
         this.from = from;
         this.costMap = new HashMap<>(costs);
         this.destinations = destinations;
+    }
+
+    public Message(String input) {
+        String[] temp = input.trim().split("==");
+        this.from = new Node(temp[0].split(":")[1].split(",")[0], Integer.parseInt(temp[0].split(":")[1].split(",")[1]));
+
+        String[] temp2 = temp[1].split(";");
+
+        for (String s: temp2) {
+            String[] costs = s.split(",");
+            this.costMap.put(new Node(costs[0], Integer.parseInt(costs[1])), Float.parseFloat(costs[2]));
+        }
+
+
     }
 
     /**
@@ -41,7 +54,7 @@ public class Message implements Serializable {
     public String getOutData() {
         String out = "";
 
-        out += "from_node:" + from.getIp() + "," + Integer.toString(from.getPort()) + "||";
+        out += "from_node:" + from.getIp() + "," + Integer.toString(from.getPort()) + "==";
 
         for (Node n: new TreeSet<>(costMap.keySet())) {
             out += n.getIp() + "," + Integer.toString(n.getPort()) + "," + Float.toString(costMap.get(n)) + ";";

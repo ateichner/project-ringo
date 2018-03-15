@@ -10,6 +10,12 @@ public class Ringo {
      * in charge of sending data from the MessageQueue
      */
     static class MessageSender implements Runnable{
+        Message message;
+
+        MessageSender(Message message) {
+            this.message = message;
+        }
+
         /**
          * the default multi-thread method
          */
@@ -23,30 +29,27 @@ public class Ringo {
          * sending method
          */
         private void send() {
-            while (true) {
-                try {
-                    DatagramSocket socket = new DatagramSocket();
+            try {
+                DatagramSocket socket = new DatagramSocket();
 
-                    // send data
-                    if (messageQueue.size() != 0) {
-                        Message m = messageQueue.poll();
-                        String outData = m.getOutData();
-                        byte[] out_data = outData.getBytes();
+                // send data
 
-                        for (Node n : m.getDestinations()) {
-                            DatagramPacket sendPkt = new DatagramPacket(out_data, 2500, InetAddress.getByName(n.getIp()), n.getPort());
-                            System.out.println("out ip: " + InetAddress.getByName(n.getIp()) + "out port: " + n.getPort());
-                            socket.send(sendPkt);
-                        }
-                    }
+                String outData = this.message.getOutData();
+                byte[] out_data = outData.getBytes();
 
-                } catch (SocketException e) {
-                    System.out.println("initializing socket failed");
-                } catch (UnknownHostException e) {
-                    System.out.println("cannot solve the destination IP address");
-                } catch (IOException e) {
-                    System.out.println("sending data failed");
+                for (Node n : this.message.getDestinations()) {
+                    DatagramPacket sendPkt = new DatagramPacket(out_data, out_data.length, InetAddress.getByName(n.getIp()), n.getPort());
+                    System.out.println("out ip: " + InetAddress.getByName(n.getIp()).toString());
+                    System.out.println("out port: " + n.getPort());
+                    socket.send(sendPkt);
                 }
+
+            } catch (SocketException e) {
+                System.out.println("initializing socket failed");
+            } catch (UnknownHostException e) {
+                System.out.println("cannot solve the destination IP address");
+            } catch (IOException e) {
+                System.out.println("sending data failed");
             }
         }
     }
@@ -60,6 +63,7 @@ public class Ringo {
     static class MessageReceiver implements Runnable {
         int IN_PORT;
 
+
         /**
          * the constructor of sender
          *
@@ -69,6 +73,7 @@ public class Ringo {
             this.IN_PORT = IN_PORT;
         }
 
+
         /**
          * the default multi-thread method
          */
@@ -77,36 +82,41 @@ public class Ringo {
             receive();
         }
 
+
         /**
          * receiving method
          */
         private void receive() {
-            try {
-                DatagramSocket socket = new DatagramSocket(IN_PORT);
+            while (true) {
                 byte[] in_data = new byte[2500];
-                while (true) {
-                    DatagramPacket packet = new DatagramPacket(in_data, 2500);
+                try {
+                    DatagramSocket socket = new DatagramSocket(IN_PORT);
+                    DatagramPacket packet = new DatagramPacket(in_data, in_data.length);
                     socket.receive(packet);
 
                     //Check to see if there was data received
                     message_check(packet.getData());
-
+                } catch (SocketException e) {
+                    System.out.println("initializing socket failed");
+                } catch (UnknownHostException e) {
+                    System.out.println("cannot solve the destination IP address");
+                } catch (IOException e) {
+                    System.out.println("receiving data failed");
                 }
-            } catch (SocketException e) {
-                System.out.println("initializing socket failed");
-            } catch (UnknownHostException e) {
-                System.out.println("cannot solve the destination IP address");
-            } catch (IOException e) {
-                System.out.println("receiving data failed");
             }
         }
+
 
         /**
          * check the incoming message for further actions
          * @param data the incoming byte array
          */
         private void message_check(byte[] data) {
-
+            System.out.println(111);
+            String in = new String(data);
+            Message m = new Message(in);
+            System.out.println(m);
+            System.out.println(m.getFrom().getPort());
         }
     }
 
@@ -143,7 +153,7 @@ public class Ringo {
 
     /**
      * Main method
-     * @param args
+     * @param args some arguments
      */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -372,8 +382,7 @@ public class Ringo {
      * @param m the message
      */
     public static void sendMessage(Message m) {
-        sender_thread.submit(new MessageSender());
-        messageQueue.add(m);
+        sender_thread.submit(new MessageSender(m));
     }
 
 
@@ -614,14 +623,15 @@ public class Ringo {
      * @return the current ringo's ip address
      */
     private static String getSelfIP() {
-        try {
-            URL url_name = new URL("http://bot.whatismyipaddress.com");
-            BufferedReader sc = new BufferedReader(new InputStreamReader(url_name.openStream()));
-            return sc.readLine().trim();
-        }
-        catch (Exception e) {
-            return null;
-        }
+//        try {
+//            URL url_name = new URL("http://bot.whatismyipaddress.com");
+//            BufferedReader sc = new BufferedReader(new InputStreamReader(url_name.openStream()));
+//            return sc.readLine().trim();
+//        }
+//        catch (Exception e) {
+//            return null;
+//        }
+        return "127.0.0.1";
     }
 
     /**
@@ -683,43 +693,5 @@ public class Ringo {
         return rtt;
     }
 
-
-//    /**
-//     * Convert object to byte array
-//     *
-//     * @param object the node object will be converted
-//     * @return te converted byte array
-//     */
-//    private static byte[] serialize(Object obj) {
-//        try {
-//            ByteArrayOutputStream out = new ByteArrayOutputStream();
-//            ObjectOutputStream os = new ObjectOutputStream(out);
-//            os.writeObject(obj);
-//            return out.toByteArray();
-//        } catch (IOException e) {
-//            System.out.println("serialize message failed");
-//        }
-//        return new byte[0];
-//    }
-//
-//
-//    /**
-//     * Convert byte array to object
-//     *
-//     * @param bytes the byte array will be converted
-//     * @return the converted node
-//     */
-//    private static Message deserialize(byte[] bytes) {
-//        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-//        ObjectInput in;
-//        try {
-//            in = new ObjectInputStream(bis);
-//            return (Message)in.readObject();
-//        } catch (IOException e) {
-//            System.out.println("deserialize message failed");
-//        } catch (ClassNotFoundException e) {
-//            System.out.println("message class note found");
-//        }
-//        return null;
-//    }
+    
 }
