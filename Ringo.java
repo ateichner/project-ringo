@@ -138,7 +138,10 @@ public class Ringo {
     private static final String keep_alive_check = "message keep alive check";
     private static final String ringo_communication = "message ringo communication";
 
-
+    /**
+     * Main method
+     * @param args
+     */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         while (true) {
@@ -598,7 +601,12 @@ public class Ringo {
         }
     }
 
-
+    /**
+     * getIP gets an IP address from a specified name
+     *
+     * @param input the hostname
+     * @return the IPAddress
+     */
     private static String getIP(String input) {
         try {
             return InetAddress.getByName(input).getHostAddress();
