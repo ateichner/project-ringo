@@ -4,7 +4,7 @@ import java.util.*;
 /**
  * node class responsible for defining a Ringo node
  */
-public class node {
+public class Node {
     private int PORT_NUM;
     private String poc_name;
     private int NUM_RINGO;
@@ -17,7 +17,7 @@ public class node {
     private ArrayList<Integer> optimal_path;
     private ArrayList<ArrayList<Long>> rtt_matrix;
 
-    public node(int PORT_NUM, String poc_name, int NUM_RINGO) {
+    public Node(int PORT_NUM, String poc_name, int NUM_RINGO) {
         //Initialize Node
         this.PORT_NUM = PORT_NUM;
         this.poc_name = poc_name;
