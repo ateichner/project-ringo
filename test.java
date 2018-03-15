@@ -1,25 +1,32 @@
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.GregorianCalendar;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class test {
     public static void main(String[] args) {
-        float a = calculate_rtt("me.zijinluo.com");
-        System.out.println(a);
+
     }
 
+
     private static float calculate_rtt(String ip_address) {
+        float start = -1;
+        float rtt = -1;
+        float stop = -1;
+        //Create IP UDP connection
         try {
-            float start = new GregorianCalendar().getTimeInMillis();
-            Process p1 = java.lang.Runtime.getRuntime().exec("ping -c 1 " + ip_address);
-            int i = p1.waitFor();
-            float end = new GregorianCalendar().getTimeInMillis();
-            return end - start;
+            InetAddress ip = InetAddress.getByName(ip_address);
+            boolean reachale = ip.isReachable(5000);
+
+            start = (float) System.currentTimeMillis();
+            //Send an ICMP packet
+            stop = (float) System.currentTimeMillis();
+            rtt = stop - start;
+        } catch (UnknownHostException e) {
+            System.out.println("Unknown host!");
         } catch (IOException e) {
-
-        } catch (InterruptedException e) {
-
+            System.out.println("IOException!");
         }
-        return -1;
+        return rtt;
     }
 }

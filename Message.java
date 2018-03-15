@@ -23,17 +23,27 @@ public class Message {
         this.destinations = destinations;
     }
 
-    public Message(String input) {
+    Message(String input) {
         String[] temp = input.trim().split("==");
-        this.from = new Node(temp[0].split(":")[1].split(",")[0], Integer.parseInt(temp[0].split(":")[1].split(",")[1]));
+
+        String fromIP = temp[0].split(":")[1].split(",")[0];
+        int fromPort = Integer.parseInt(temp[0].split(":")[1].split(",")[1]);
+        this.from = new Node(fromIP, fromPort);
 
         String[] temp2 = temp[1].split(";");
 
-        for (String s: temp2) {
-            String[] costs = s.split(",");
-            this.costMap.put(new Node(costs[0], Integer.parseInt(costs[1])), Float.parseFloat(costs[2]));
-        }
+        this.costMap = new HashMap<>();
+        this.destinations = null;
 
+        for (String s: temp2) {
+            String[] news = s.split(",");
+
+            String newIP = news[0];
+            int newPort = Integer.parseInt(news[1]);
+            float newCost = Float.parseFloat(news[2]);
+
+            this.costMap.put(new Node(newIP, newPort), newCost);
+        }
 
     }
 

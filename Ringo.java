@@ -39,8 +39,7 @@ public class Ringo {
 
                 for (Node n : this.message.getDestinations()) {
                     DatagramPacket sendPkt = new DatagramPacket(out_data, out_data.length, InetAddress.getByName(n.getIp()), n.getPort());
-                    System.out.println("out ip: " + InetAddress.getByName(n.getIp()).toString());
-                    System.out.println("out port: " + n.getPort());
+                    System.out.println("Message transmitted:  " + "ip: " + InetAddress.getByName(n.getIp()).toString() + " | " + "port: " + n.getPort());
                     socket.send(sendPkt);
                 }
 
@@ -61,7 +60,8 @@ public class Ringo {
      * in charge of receiving data and put it into IO_QUEUE
      */
     static class MessageReceiver implements Runnable {
-        int IN_PORT;
+        static int IN_PORT;
+        static DatagramSocket socket;
 
 
         /**
@@ -87,15 +87,17 @@ public class Ringo {
          * receiving method
          */
         private void receive() {
+            setConnection();
+
             while (true) {
                 byte[] in_data = new byte[2500];
                 try {
-                    DatagramSocket socket = new DatagramSocket(IN_PORT);
                     DatagramPacket packet = new DatagramPacket(in_data, in_data.length);
                     socket.receive(packet);
+                    System.out.println("get packet");
 
                     //Check to see if there was data received
-                    message_check(packet.getData());
+                    process(packet.getData());
                 } catch (SocketException e) {
                     System.out.println("initializing socket failed");
                 } catch (UnknownHostException e) {
@@ -111,12 +113,25 @@ public class Ringo {
          * check the incoming message for further actions
          * @param data the incoming byte array
          */
-        private void message_check(byte[] data) {
-            System.out.println(111);
-            String in = new String(data);
+        private void process(byte[] data) {
+            System.out.println("processing packet");
+
+            String in = new String(data).trim();
+
             Message m = new Message(in);
-            System.out.println(m);
-            System.out.println(m.getFrom().getPort());
+
+        }
+
+
+        private static void setConnection() {
+            try {
+                // create the listener of this server. ServerSocket will automatically create a socket and bind it to the port.
+                // second parameter 50 means the back_log number, maximum 50 in the queue.
+                socket = new DatagramSocket(IN_PORT);
+                System.out.println("Server is now running at port: " + IN_PORT);
+            } catch (IOException e) {
+                System.out.println("an IOException found, listening socket setup failed");
+            }
         }
     }
 
@@ -149,7 +164,6 @@ public class Ringo {
     private static String flag;
 
     private static final String keep_alive_check = "message keep alive check";
-    private static final String ringo_communication = "message ringo communication";
 
     /**
      * Main method
@@ -173,8 +187,8 @@ public class Ringo {
                 selfNode = new Node(getSelfIP(), selfPort);
                 Float selfCost = (0.0f);
                 addNeighbor(selfNode, selfCost);
-                System.out.println("Started teh selfNode");
-//                doDistanceVectorUpdate();
+                System.out.println("Started the selfNode");
+
                 // start the receiver_thread
                 receiver_thread.submit(new MessageReceiver(selfPort));
 
@@ -186,7 +200,8 @@ public class Ringo {
                         System.out.println("unknown poc name");
                         continue;
                     }
-//                    cost
+
+                    // code
                     addNeighbor(new Node(getIP(pocName), pocPort), calculate_rtt(pocName));
                     System.out.println("Started PoC");
                     doDistanceVectorUpdate();
@@ -624,15 +639,14 @@ public class Ringo {
      * @return the current ringo's ip address
      */
     private static String getSelfIP() {
-//        try {
-//            URL url_name = new URL("http://bot.whatismyipaddress.com");
-//            BufferedReader sc = new BufferedReader(new InputStreamReader(url_name.openStream()));
-//            return sc.readLine().trim();
-//        }
-//        catch (Exception e) {
-//            return null;
-//        }
-        return "127.0.0.1";
+        try {
+            URL url_name = new URL("http://bot.whatismyipaddress.com");
+            BufferedReader sc = new BufferedReader(new InputStreamReader(url_name.openStream()));
+            return sc.readLine().trim();
+        }
+        catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -657,23 +671,6 @@ public class Ringo {
      * @return the rtt
      */
     private static float calculate_rtt(String ip_address) {
-//        try {
-//            InetAddress inet = InetAddress.getByName(ip_address);
-//            float finish;
-//            float start = new GregorianCalendar().getTimeInMillis();
-//
-//            if (inet.isReachable(5000)){
-//                finish = new GregorianCalendar().getTimeInMillis();
-//                return finish - start;
-//            } else {
-//                System.out.println(ip_address + " NOT reachable.");
-//                return Float.POSITIVE_INFINITY;
-//            }
-//        } catch ( Exception e ) {
-//            System.out.println("Exception:" + e.getMessage());
-//            return Float.POSITIVE_INFINITY;
-//        }
-
         float start = -1;
         float rtt = -1;
         float stop = -1;
@@ -693,6 +690,4 @@ public class Ringo {
         }
         return rtt;
     }
-
-    
 }
