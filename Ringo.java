@@ -161,7 +161,10 @@ public class Ringo {
 
                 // set up self selfNode
                 selfNode = new Node(getSelfIP(), selfPort);
-
+                Float selfCost = (0.0f);
+                addNeighbor(selfNode, selfCost);
+                System.out.println("Started teh selfNode");
+                doDistanceVectorUpdate();
                 // start the receiver_thread
                 receiver_thread.submit(new MessageReceiver(selfPort));
 
@@ -173,7 +176,11 @@ public class Ringo {
                         System.out.println("unknown poc name");
                         continue;
                     }
+//                    cost
                     addNeighbor(new Node(getIP(pocName), pocPort), calculate_rtt(pocName));
+                    System.out.println("Started PoC");
+                    doDistanceVectorUpdate();
+                    System.out.println("Distance vector updated");
                 }
 
                 // TODO: CALL NODE'S OPTIMAL RING METHOD AFTER DONE UPDATING MODEL
@@ -198,7 +205,7 @@ public class Ringo {
 
                 // TODO: IF IT DOES, CALL THE print_ring METHOD
                 System.out.println("show-ring test");
-
+                printDistanceVector();
 
             } else if (in[0].equals("show-matrix")) {
                 // TODO: CHECK TO SEE IF NODE EXISTS USING TRY-CATCH
@@ -317,7 +324,10 @@ public class Ringo {
                 if (minimumDistance != getCostToDestination(destination)) {
 
                     updateDistanceVector(destination, minimumDistance);
-                    updateForwardingTable(destination, nextHop);
+                    System.out.println(nextHop);
+                    if (nextHop != null) {
+                        updateForwardingTable(destination, nextHop);
+                    }
                     somethingChanged = true;
 
                 }
@@ -636,22 +646,41 @@ public class Ringo {
      * @return the rtt
      */
     private static float calculate_rtt(String ip_address) {
-        try {
-            InetAddress inet = InetAddress.getByName(ip_address);
-            float finish;
-            float start = new GregorianCalendar().getTimeInMillis();
+//        try {
+//            InetAddress inet = InetAddress.getByName(ip_address);
+//            float finish;
+//            float start = new GregorianCalendar().getTimeInMillis();
+//
+//            if (inet.isReachable(5000)){
+//                finish = new GregorianCalendar().getTimeInMillis();
+//                return finish - start;
+//            } else {
+//                System.out.println(ip_address + " NOT reachable.");
+//                return Float.POSITIVE_INFINITY;
+//            }
+//        } catch ( Exception e ) {
+//            System.out.println("Exception:" + e.getMessage());
+//            return Float.POSITIVE_INFINITY;
+//        }
 
-            if (inet.isReachable(5000)){
-                finish = new GregorianCalendar().getTimeInMillis();
-                return finish - start;
-            } else {
-                System.out.println(ip_address + " NOT reachable.");
-                return Float.POSITIVE_INFINITY;
-            }
-        } catch ( Exception e ) {
-            System.out.println("Exception:" + e.getMessage());
-            return Float.POSITIVE_INFINITY;
+        float start = -1;
+        float rtt = -1;
+        float stop = -1;
+        //Create IP UDP connection
+        try {
+            InetAddress ip = InetAddress.getByName(ip_address);
+            boolean reachale = ip.isReachable(160000);
+
+            start = (float) System.currentTimeMillis();
+            //Send an ICMP packet
+            stop = (float) System.currentTimeMillis();
+            rtt = stop - start;
+        } catch (UnknownHostException e) {
+            System.out.println("Unknown host!");
+        } catch (IOException e) {
+            System.out.println("IOException!");
         }
+        return rtt;
     }
 
 
