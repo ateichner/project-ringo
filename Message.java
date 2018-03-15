@@ -1,3 +1,4 @@
+import java.io.Serializable;
 import java.util.*;
 
 
@@ -6,9 +7,10 @@ import java.util.*;
  * one of its neighbors in a distance vector routing algorithm implementation.
  *
  */
-public class Message {
+public class Message implements Serializable {
     private Node from;
     private HashMap<Node,Float> costMap;
+    private Collection<Node> destinations;
 
     /**
      * Create a new distance vector Message
@@ -16,9 +18,10 @@ public class Message {
      * @param from is the node sending the message
      * @param costs is a Map with the costs to all destination nodes to be included in this message
      */
-    Message(Node from, Map<Node,Float> costs) {
+    Message(Node from, Map<Node,Float> costs, Collection<Node> destinations) {
         this.from = from;
         this.costMap = new HashMap<>(costs);
+        this.destinations = destinations;
     }
 
     /**
@@ -28,6 +31,10 @@ public class Message {
      */
     public Node getFrom() {
         return from;
+    }
+
+    public Collection<Node> getDestinations() {
+        return destinations;
     }
 
     /**

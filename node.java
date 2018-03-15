@@ -48,7 +48,7 @@ public class node {
         if (cost != -1) {
             //TODO Get neigbor's Ringo number via a socket
             int poc_number = 0;
-            add_poc_mapping(Integer.toString(poc_number), cost);
+//            add_poc_mapping(Integer.toString(poc_number), cost);
         } else {
             System.out.println("Neighbor unreachable, left undiscovered");
         }
@@ -70,7 +70,7 @@ public class node {
     }
 
     public void add_poc_mapping(String ip_address, int poc_num) {
-        poc_to_ringo_num.put(ip_address, poc_num);
+//        poc_to_ringo_num.put(ip_address, poc_num);
         //PUNTED POCNUM DISCOVERY TO MAIN METHOD IN RINGO class
     }
 
