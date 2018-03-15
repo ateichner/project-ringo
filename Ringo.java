@@ -364,6 +364,9 @@ public class Ringo {
     }
 
 
+    /**
+     * Gets the messages from the MessageQueue and puts it into a HashMap
+     */
     public static void deliverMessageQueue() {
         for (Message m: messageQueue) {
             messages.put(m.getFrom(), m);
@@ -491,6 +494,13 @@ public class Ringo {
     }
 
 
+    /**
+     * Updates the Distance Vector
+     *
+     * @param destination the final node
+     * @param cost
+     * @throws Exception
+     */
     private static void updateDistanceVector(Node destination, float cost)
             throws Exception {
         if (cost > 0) {
