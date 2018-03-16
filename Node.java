@@ -23,13 +23,29 @@ public class Node implements Comparable<Node> {
     }
 
 
+    /**
+     * get the ip address of one node
+     *
+     * @return the ip address
+     */
     public String getIp() {
         return ip;
     }
 
 
+    /**
+     * get the port number of one node
+     *
+     * @return the port number
+     */
     public int getPort() {
         return port;
+    }
+
+
+    @Override
+    public String toString() {
+        return getIp() + "|" + getPort();
     }
 
 

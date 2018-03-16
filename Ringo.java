@@ -20,6 +20,7 @@ public class Ringo {
          * the default multi-thread method
          */
         public void run() {
+            System.out.println('\n');
             System.out.println("message sender is active");
             send();
         }
@@ -38,6 +39,9 @@ public class Ringo {
                 byte[] out_data = outData.getBytes();
 
                 for (Node n : this.message.getDestinations()) {
+                    if (n.equals(selfNode)) {
+                        continue;
+                    }
                     DatagramPacket sendPkt = new DatagramPacket(out_data, out_data.length, InetAddress.getByName(n.getIp()), n.getPort());
                     System.out.println("Message transmitted:  " + "ip: " + InetAddress.getByName(n.getIp()).toString() + " | " + "port: " + n.getPort());
                     socket.send(sendPkt);
@@ -60,8 +64,8 @@ public class Ringo {
      * in charge of receiving data and put it into IO_QUEUE
      */
     static class MessageReceiver implements Runnable {
-        static int IN_PORT;
-        static DatagramSocket socket;
+        int IN_PORT;
+        DatagramSocket socket;
 
 
         /**
@@ -94,7 +98,11 @@ public class Ringo {
                 try {
                     DatagramPacket packet = new DatagramPacket(in_data, in_data.length);
                     socket.receive(packet);
-                    System.out.println("get packet");
+
+                    String inIP = packet.getAddress().toString();
+                    int inPort = packet.getPort();
+                    System.out.println('\n');
+                    System.out.println("get packet from " + inIP + "|" + inPort);
 
                     //Check to see if there was data received
                     process(packet.getData());
@@ -123,12 +131,9 @@ public class Ringo {
         }
 
 
-        private static void setConnection() {
+        private void setConnection() {
             try {
-                // create the listener of this server. ServerSocket will automatically create a socket and bind it to the port.
-                // second parameter 50 means the back_log number, maximum 50 in the queue.
                 socket = new DatagramSocket(IN_PORT);
-                System.out.println("Server is now running at port: " + IN_PORT);
             } catch (IOException e) {
                 System.out.println("an IOException found, listening socket setup failed");
             }
@@ -349,7 +354,7 @@ public class Ringo {
                 if (minimumDistance != getCostToDestination(destination)) {
 
                     updateDistanceVector(destination, minimumDistance);
-                    System.out.println("Destination: " + destination);
+                    System.out.println("Destination: " + destination.toString());
                     System.out.println("nextHop: " + nextHop);
                     if (nextHop != null) {
                         updateForwardingTable(destination, nextHop);
@@ -615,18 +620,18 @@ public class Ringo {
      */
     private static void printDistanceVector() {
         System.out.println("Distance vector and forwarding table for node "
-                + selfNode + ":");
+                + selfNode.toString() + ":");
         System.out.println("Dest.\tCost (Next Hop)");
         System.out.println("-------------------------");
         for (Node dest : getDestinations()) {
-            String costToDestination = "";
+            String costToDestination;
             if (getCostToDestination(dest) == Float.POSITIVE_INFINITY) {
                 costToDestination = "Inf";
             } else {
                 costToDestination = Integer
                         .toString((int) getCostToDestination(dest));
             }
-            System.out.println(dest + "\t" + costToDestination + " ("
+            System.out.println(dest.toString() + "\t" + costToDestination + " ("
                     + getNextHopTo(dest) + ")");
         }
         System.out.println("");
@@ -639,14 +644,15 @@ public class Ringo {
      * @return the current ringo's ip address
      */
     private static String getSelfIP() {
-        try {
-            URL url_name = new URL("http://bot.whatismyipaddress.com");
-            BufferedReader sc = new BufferedReader(new InputStreamReader(url_name.openStream()));
-            return sc.readLine().trim();
-        }
-        catch (Exception e) {
-            return null;
-        }
+//        try {
+//            URL url_name = new URL("http://bot.whatismyipaddress.com");
+//            BufferedReader sc = new BufferedReader(new InputStreamReader(url_name.openStream()));
+//            return sc.readLine().trim();
+//        }
+//        catch (Exception e) {
+//            return null;
+//        }
+        return "127.0.0.1";
     }
 
     /**
