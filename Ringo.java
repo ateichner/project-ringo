@@ -35,14 +35,14 @@ public class Ringo {
 
                 // send data
 
-                String outData = this.message.getOutData();
-                byte[] out_data = outData.getBytes();
+                String dataToBeSent = this.message.getdataToBeSent();
+                byte[] data_to_be_sent = dataToBeSent.getBytes();
 
-                for (Node n : this.message.getDestinations()) {
-                    if (n.equals(selfNode)) {
+                for (Node n : this.message.fetchDestinations()) {
+                    if (n.equals(ringoNode)) {
                         continue;
                     }
-                    DatagramPacket sendPkt = new DatagramPacket(out_data, out_data.length, InetAddress.getByName(n.getIp()), n.getPort());
+                    DatagramPacket sendPkt = new DatagramPacket(data_to_be_sent, data_to_be_sent.length, InetAddress.getByName(n.getIp()), n.getPort());
                     System.out.println("Message transmitted:  " + "ip: " + InetAddress.getByName(n.getIp()).toString() + " | " + "port: " + n.getPort());
                     socket.send(sendPkt);
                 }
@@ -90,8 +90,8 @@ public class Ringo {
                 DatagramSocket socket = new DatagramSocket();
 
                 // send data
-                byte[] out_data = data.getBytes();
-                DatagramPacket sendPkt = new DatagramPacket(out_data, out_data.length, InetAddress.getByName(ip), port);
+                byte[] data_to_be_sent = data.getBytes();
+                DatagramPacket sendPkt = new DatagramPacket(data_to_be_sent, data_to_be_sent.length, InetAddress.getByName(ip), port);
                 System.out.println("String transmitted:  " + "ip: " + ip + " | " + "port: " + port);
                 socket.send(sendPkt);
 
@@ -188,12 +188,12 @@ public class Ringo {
                     System.out.println("Attempting to update DV");
                     try {
 
-                        System.out.println("m.getDestinations object ref: " + (m.getDestinations().toString()));
+                        System.out.println("m.fetchDestinations object ref: " + (m.fetchDestinations().toString()));
                     } catch (Exception e) {
-                        System.out.println(e + ": m.getDestinations() is null in process method");
+                        System.out.println(e + ": m.fetchDestinations() is null in process method");
                     }
                     boolean printed = false;
-                    for (Node n: m.getDestinations()) {
+                    for (Node n: m.fetchDestinations()) {
                         // if (!distanceVector.containsKey(n)) {
                         if (!printed) {
                             System.out.println("IN FOREACH INSIDE process METHOD");
@@ -209,7 +209,7 @@ public class Ringo {
                         // messages.put(n, m);
                         // }
                     }
-                    doDistanceVectorUpdate();
+                    calculateDistanceVector();
                 }
 
 
@@ -217,7 +217,7 @@ public class Ringo {
 
                 //}
                 //if ((m.getFrom()))
-                //changeCostToNeighbor(m.)
+                //changeSingleNeighborCost(m.)
 
             }
 
@@ -239,7 +239,7 @@ public class Ringo {
     private static final ExecutorService receiver_thread = Executors.newSingleThreadExecutor();
     private static final ExecutorService sender_thread = Executors.newCachedThreadPool();
 
-    private static Node selfNode;
+    private static Node ringoNode;
     private static int NUM_RINGO = 0;
     private static int NUM_ACTIVE_RINGO = 0;
     private static int PACKET_TRANSMISSION_NUMBER = 0;
@@ -247,17 +247,17 @@ public class Ringo {
     private static Queue<byte[]> IO_QUEUE = new ArrayDeque<>();
 
     // Data structure mapping this nodes neighbors to the costs of getting to each neighbor.
-    private static HashMap<Node, Float> costToNeighborMap = new HashMap<>();
+    private static HashMap<Node, Float> neighborsCosts = new HashMap<>();
 
     // Data structure to hold the most recently received message from each neighbor
     private static HashMap<Node, Message> messages = new HashMap<>();
     private static boolean newMessages = false;
     private static Queue<Message> messageQueue = new ArrayDeque<>();
 
-    // HashMap distanceVector holds the cost to each destination from this selfNode
+    // HashMap distanceVector holds the cost to each destination from this ringoNode
     private static HashMap<Node, Float> distanceVector = new HashMap<>();
 
-    // HashMap forwardingTable holds the next hop to each destination from this selfNode
+    // HashMap forwardingTable holds the next hop to each destination from this ringoNode
     private static HashMap<Node, Node> forwardingTable = new HashMap<>();
 
     private static String flag;
@@ -284,22 +284,22 @@ public class Ringo {
                 int numRingo = Integer.parseInt(in[5]);
                 boolean hasPoC = !pocName.equals("0") & pocPort != 0;
 
-                // set up self selfNode
-                selfNode = new Node(getSelfIP(), selfPort);
+                // set up self ringoNode
+                ringoNode = new Node(getMyIP(), selfPort);
                 HashMap<Node, Float> costMap = new HashMap<>();
-                costMap.put(selfNode, 0.0f);
+                costMap.put(ringoNode, 0.0f);
 
 
-                Message aMessage = new Message(selfNode, costMap, getDestinations());
-                addNeighbor(selfNode, 0.0f, aMessage);
-                System.out.println("Started the selfNode");
+                Message aMessage = new Message(ringoNode, costMap, fetchDestinations());
+                addNeighbor(ringoNode, 0.0f, aMessage);
+                System.out.println("Started the ringoNode");
 
                 // start the receiver_thread
                 receiver_thread.submit(new MessageReceiver(selfPort));
 
                 // if this ringo has a PoC
                 if (hasPoC) {
-                    // Create new selfNode here
+                    // Create new ringoNode here
                     if (getIP(pocName) == null) {
                         System.out.println("unknown poc name");
                         continue;
@@ -310,16 +310,16 @@ public class Ringo {
                     float pocRTT = calculate_rtt(pocName, pocPort);
                     Node pocNode = new Node(pocName, pocPort);
                     HashMap<Node, Float> pocCostMap = new HashMap<>();
-                    pocCostMap.put(selfNode, pocRTT);
+                    pocCostMap.put(ringoNode, pocRTT);
                     pocCostMap.put(pocNode, 0.0f);
 
-                    Message pocMessage = new Message(pocNode, pocCostMap, getDestinations());
+                    Message pocMessage = new Message(pocNode, pocCostMap, fetchDestinations());
                     addNeighbor(pocNode, pocRTT, pocMessage);
 
                     System.out.println("Started PoC: " + pocName + "|" + pocPort);
-                    doDistanceVectorUpdate();
+                    calculateDistanceVector();
                     System.out.println("Distance vector updated");
-                    printDistanceVector();
+                    printVectorMatrix();
                 }
 
                 // TODO: CALL NODE'S OPTIMAL RING METHOD AFTER DONE UPDATING MODEL
@@ -332,10 +332,10 @@ public class Ringo {
                 try {
                     Thread.sleep(Integer.parseInt(in[1]));
                 } catch (InterruptedException e) {
-                    System.out.println("selfNode offline failed");
+                    System.out.println("ringoNode offline failed");
                 }
             } else if (in.length == 2 && in[0].equals("send")) {
-                // TODO: setup a sender_thread with the out_ip and out_port of next selfNode in the optimal ring
+                // TODO: setup a sender_thread with the out_ip and out_port of next ringoNode in the optimal ring
                 System.out.println("send test");
 
 
@@ -347,7 +347,7 @@ public class Ringo {
                 printLatestMessages();
 
             } else if (in[0].equals("show-matrix")) {
-                printDistanceVector();
+                printVectorMatrix();
 
             } else if (in[0].equals("disconnect")) {
                 // TODO: CHECK TO SEE IF NODE EXISTS USING TRY-catch
@@ -370,22 +370,22 @@ public class Ringo {
      * @param cost the new cost will be updated
      * @throws Exception some errors
      */
-    public static void changeCostToNeighbor(Node neighbor, float cost) throws Exception {
-        if (!costToNeighborMap.containsKey(neighbor)) {
+    public static void changeSingleNeighborCost(Node neighbor, float cost) throws Exception {
+        if (!neighborsCosts.containsKey(neighbor)) {
             throw new Exception("Trying to change cost to a node that isn't already a neighbor");
         }
 
         // Change the cost to this neighbor
-        costToNeighborMap.put(neighbor, cost);
+        neighborsCosts.put(neighbor, cost);
 
         // Update the local routing info (distance vector and forwarding table)
         // with the new cost
 
-        doDistanceVectorUpdate();
+        calculateDistanceVector();
         clearNewMessagesFlag();
 
         // Notify neighbors of the change
-        notifyNeighbors();
+        alertRingos();
     }
 
 
@@ -396,7 +396,7 @@ public class Ringo {
      * @throws Exception error while updating
      */
     private static void updateForwardingTable(Node destination, Node nextHop) throws Exception {
-        if ((!costToNeighborMap.containsKey(nextHop)) && (nextHop != selfNode)) {
+        if ((!neighborsCosts.containsKey(nextHop)) && (nextHop != ringoNode)) {
             throw new Exception("Trying to add a forwarding table entry to a node that isn't a neighbor");
         }
         forwardingTable.put(destination, nextHop);
@@ -408,7 +408,7 @@ public class Ringo {
      * Implements the Bellman-Ford equation to update the distanceVector costs
      * and forwardingTable of this node
      */
-    private static void doDistanceVectorUpdate() {
+    private static void calculateDistanceVector() {
         // STEP 1: Fill in this method
         System.out.println("INSIDE DISTANCE VECTOR UPDATE");
         ArrayList<Node> nextNodes = new ArrayList<>();
@@ -416,21 +416,21 @@ public class Ringo {
         boolean somethingChanged = false;
 
         // Loops over all possible destinations.
-        for (Node destination : getDestinations()) {
+        for (Node destination : fetchDestinations()) {
 
             // Loops over all neighbors.
             // Do Bellman-Ford updates using this node's local info
-            for (Node neighbor : getNeighbors()) {
+            for (Node neighbor : getAllKnownNeighbors()) {
 
                 // Reinitialize the node.
-                if (selfNode.equals(destination)) {
+                if (ringoNode.equals(destination)) {
 
-                    nextNodes.add(selfNode);
+                    nextNodes.add(ringoNode);
                     costs.add(0.0f);
 
                 } else {
 
-                    Float cost = getCostToNeighbor(neighbor);
+                    Float cost = getCostToSingleNeighbor(neighbor);
                     System.out.println("Cost to neighbor " + neighbor.toString() + ": " + cost);
                     boolean destInMessages = messages.containsKey(destination);
                     boolean neighborInMessages = messages.containsKey(neighbor);
@@ -438,11 +438,11 @@ public class Ringo {
                     System.out.println("Does messages contain " + neighbor.toString() + ": " + neighborInMessages);
                     if (destInMessages) {
                         Message m = messages.get(neighbor);
-                        cost += getCostFromNeighborTo(neighbor,
+                        cost += getCostFromOneArbitraryNeighborToAnother(neighbor,
                                 destination);
                         System.out.println("New Cost: " + cost);
                     } else {
-                        cost += getCostToDestination(destination);
+                        cost += findCostToDestination(destination);
                         System.out.println("New Cost: " + cost);
                     }
                     nextNodes.add(neighbor);
@@ -467,7 +467,7 @@ public class Ringo {
 
             try {
                 // Updates the distance if different from stored value.
-                if (minimumDistance != getCostToDestination(destination)) {
+                if (minimumDistance != findCostToDestination(destination)) {
 
                     updateDistanceVector(destination, minimumDistance);
                     System.out.println("Destination: " + destination.toString());
@@ -489,7 +489,7 @@ public class Ringo {
         // If something changed, notifies this node's neighbors.
         if (somethingChanged) {
             somethingChanged = false;
-            notifyNeighbors();
+            alertRingos();
         }
     }
 
@@ -539,7 +539,7 @@ public class Ringo {
 
 
     /**
-     * Method used by the Network to tell this selfNode that the list of possible
+     * Method used by the Network to tell this ringoNode that the list of possible
      * destinations has changed.
      *
      * @param destinations other nodes
@@ -555,22 +555,22 @@ public class Ringo {
     }
 
     /**
-     * Add a new neighbor to this selfNode and specifies the cost to this neighbor
+     * Add a new neighbor to this ringoNode and specifies the cost to this neighbor
      *
      * @param neighbor is the neighboring Node
      * @param cost is the non-negative integer cost to get to this neighbor
      */
     private static void addNeighbor(Node neighbor, float cost) {
         System.out.println("IN ADD NEIGHBOR METHOD");
-        if ((costToNeighborMap.containsKey(neighbor)) || (cost < 0)) {
-            String message = "Error adding neighbor to selfNode" + selfNode + "("
+        if ((neighborsCosts.containsKey(neighbor)) || (cost < 0)) {
+            String message = "Error adding neighbor to ringoNode" + ringoNode + "("
                     + neighbor + ", " + cost + ")"
                     + "\nCan't have duplicate links or negative costs";
             System.out.println("Message in addNeighbor: "+message);
         }
 
         // Add an entry for the new neighbor in the local data structures
-        costToNeighborMap.put(neighbor, cost);
+        neighborsCosts.put(neighbor, cost);
         messages.put(neighbor, null);
         if (!distanceVector.containsKey(neighbor)) {
             distanceVector.put(neighbor, cost);
@@ -578,20 +578,20 @@ public class Ringo {
         }
 
         // Send a message to all neighbors with this new cost info
-        notifyNeighbors();
+        alertRingos();
     }
 
     private static void addNeighbor(Node neighbor, float cost, Message aMessage) {
         System.out.println("IN ADD NEIGHBOR METHOD");
-        if ((costToNeighborMap.containsKey(neighbor)) || (cost < 0)) {
-            String message = "Error adding neighbor to selfNode" + selfNode + "("
+        if ((neighborsCosts.containsKey(neighbor)) || (cost < 0)) {
+            String message = "Error adding neighbor to ringoNode" + ringoNode + "("
                     + neighbor + ", " + cost + ")"
                     + "\nCan't have duplicate links or negative costs";
             System.out.println("Message in addNeighbor: "+message);
         }
 
         // Add an entry for the new neighbor in the local data structures
-        costToNeighborMap.put(neighbor, cost);
+        neighborsCosts.put(neighbor, cost);
         messages.put(neighbor, aMessage);
         if (!distanceVector.containsKey(neighbor)) {
             distanceVector.put(neighbor, cost);
@@ -599,37 +599,37 @@ public class Ringo {
         }
 
         // Send a message to all neighbors with this new cost info
-        notifyNeighbors();
+        alertRingos();
     }
 
     /**
-     * Get a collection of all destinations in the network from this selfNode
+     * Get a collection of all destinations in the network from this ringoNode
      *
-     * @return a Collection of all possible destinations from this selfNode
+     * @return a Collection of all possible destinations from this ringoNode
      */
-    private static Collection<Node> getDestinations() {
+    private static Collection<Node> fetchDestinations() {
         return new HashSet<>(distanceVector.keySet());
     }
 
 
     /**
-     * @return a Collection of this selfNode's neighbors
+     * @return a Collection of this ringoNode's neighbors
      */
-    private static Collection<Node> getNeighbors() {
-        return new HashSet<>(costToNeighborMap.keySet());
+    private static Collection<Node> getAllKnownNeighbors() {
+        return new HashSet<>(neighborsCosts.keySet());
     }
 
 
     /**
-     * Get the cost of the link to go directly from this selfNode to a neighbor
+     * Get the cost of the link to go directly from this ringoNode to a neighbor
      *
      * @param neighbor
-     *            is a selfNode directly connected to this one
+     *            is a ringoNode directly connected to this one
      * @return the link cost to go directly to this neighbor, or infinity if the
-     *         specified selfNode isn't a neighbor
+     *         specified ringoNode isn't a neighbor
      */
-    private static float getCostToNeighbor(Node neighbor) {
-        return costToNeighborMap.getOrDefault(neighbor, Float.POSITIVE_INFINITY);
+    private static float getCostToSingleNeighbor(Node neighbor) {
+        return neighborsCosts.getOrDefault(neighbor, Float.POSITIVE_INFINITY);
     }
 
     /**
@@ -637,68 +637,68 @@ public class Ringo {
      * latest message received from that neighbor
      *
      * @param neighbor is the potential next hop
-     * @param destination a potential selfNode we are trying to get to
+     * @param destination a potential ringoNode we are trying to get to
      * @return the cost from neighbor to destination as advertised in the most
      *         recent message received from neighbor
      */
      //TEICHNER'S NOTES: M IS NULL WHEN RTT = INF
-    private static float getCostFromNeighborTo(Node neighbor, Node destination) {
+    private static float getCostFromOneArbitraryNeighborToAnother(Node neighbor, Node destination) {
 
 
         Message m = messages.get(neighbor);
 
         try {
-            System.out.println("getCostFromNeighborTo DESTINATION: " + destination.toString());
+            System.out.println("getCostFromOneArbitraryNeighborToAnother DESTINATION: " + destination.toString());
         } catch (Exception e) {
-            System.out.println(e + ": destination is null in getCostFromNeighborTo");
+            System.out.println(e + ": destination is null in getCostFromOneArbitraryNeighborToAnother");
         }
         try {
-            System.out.println("getCostFromNeighborTo m out_data value: " + m.getOutData());
+            System.out.println("getCostFromOneArbitraryNeighborToAnother m data_to_be_sent value: " + m.getdataToBeSent());
         } catch (Exception e) {
-            System.out.println(e + ": m is null in getCostFromNeighborTo");
+            System.out.println(e + ": m is null in getCostFromOneArbitraryNeighborToAnother");
         }
         try {
-            System.out.println("Neighbor in getCostFromNeighborTo: "+neighbor.toString());
+            System.out.println("Neighbor in getCostFromOneArbitraryNeighborToAnother: "+neighbor.toString());
         } catch (Exception e) {
             System.out.println(e + ": either neighbor is not in messages list or neighbor is null");
         }
         if (m != null) {
             float retVal = m.getCostTo(destination);
             // return m.getCostTo(destination);
-            System.out.println("getCostFromNeighborTo RETURN VALUE: " + retVal);
+            System.out.println("getCostFromOneArbitraryNeighborToAnother RETURN VALUE: " + retVal);
             return retVal;
         } else {
             return Float.POSITIVE_INFINITY;
         }
     }
-    private static float getCostFromNeighborTo(Node neighbor, Node destination, Message aMessage) {
+    private static float getCostFromOneArbitraryNeighborToAnother(Node neighbor, Node destination, Message aMessage) {
         Message m = messages.get(neighbor);
 
-        //System.out.println("M in getCostFromNeighborTo: " + m.toString());
-        System.out.println("aMessage out_Data in getCostFromNeighborTo: " + aMessage.toString());
+        //System.out.println("M in getCostFromOneArbitraryNeighborToAnother: " + m.toString());
+        System.out.println("aMessage data_to_be_sent in getCostFromOneArbitraryNeighborToAnother: " + aMessage.toString());
         if (m == null) {
             messages.put(neighbor,aMessage);
         }
         Message n = messages.get(neighbor);
         try {
-            System.out.println("getCostFromNeighborTo DESTINATION: " + destination.toString());
+            System.out.println("getCostFromOneArbitraryNeighborToAnother DESTINATION: " + destination.toString());
         } catch (Exception e) {
-            System.out.println(e + ": destination is null in getCostFromNeighborTo");
+            System.out.println(e + ": destination is null in getCostFromOneArbitraryNeighborToAnother");
         }
         try {
-            System.out.println("getCostFromNeighborTo m out_data value: " + n.getOutData());
+            System.out.println("getCostFromOneArbitraryNeighborToAnother m data_to_be_sent value: " + n.getdataToBeSent());
         } catch (Exception e) {
-            System.out.println(e + ": m is null in getCostFromNeighborTo");
+            System.out.println(e + ": m is null in getCostFromOneArbitraryNeighborToAnother");
         }
         try {
-            System.out.println("Neighbor in getCostFromNeighborTo: "+neighbor.toString());
+            System.out.println("Neighbor in getCostFromOneArbitraryNeighborToAnother: "+neighbor.toString());
         } catch (Exception e) {
             System.out.println(e + ": either neighbor is not in messages list or neighbor is null");
         }
         if (n != null) {
             float retVal = n.getCostTo(destination);
             // return m.getCostTo(destination);
-            System.out.println("getCostFromNeighborTo RETURN VALUE: " + retVal);
+            System.out.println("getCostFromOneArbitraryNeighborToAnother RETURN VALUE: " + retVal);
             return retVal;
         } else {
             return Float.POSITIVE_INFINITY;
@@ -711,23 +711,23 @@ public class Ringo {
      * specified destination
      *
      * @param destination is another Node in the Network
-     * @return the Node that is the next hop to get from this selfNode to the
+     * @return the Node that is the next hop to get from this ringoNode to the
      *         specified destination
      */
-    private static Node getNextHopTo(Node destination) {
+    private static Node fetchNextHopTo(Node destination) {
         return forwardingTable.get(destination);
     }
 
 
     /**
-     * Get the current distanceVector entry from this selfNode to a specified
+     * Get the current distanceVector entry from this ringoNode to a specified
      * destination
      *
      * @param destination is another Node in the Network
      * @return the cost to get from this Node to destination in our current
      *         distanceVector
      */
-    private static float getCostToDestination(Node destination) {
+    private static float findCostToDestination(Node destination) {
         return distanceVector.get(destination);
     }
 
@@ -749,25 +749,25 @@ public class Ringo {
 
 
     /**
-     * Sends distance vector messages to all neighbors of this selfNode
+     * Sends distance vector messages to all neighbors of this ringoNode
      */
-    private static void notifyNeighbors() {
+    private static void alertRingos() {
         // STEP 2: Fill in this method
 
         HashMap<Node, Float> vector = new HashMap<>();
 
-        // Gets the selfNode's distance vector.
-        for (Node destination : getDestinations()) {
-            vector.put(destination, getCostToDestination(destination));
+        // Gets the ringoNode's distance vector.
+        for (Node destination : fetchDestinations()) {
+            vector.put(destination, findCostToDestination(destination));
         }
         // (Not doing poisoned reverse in this implementation)
 
-        // Compiles the selfNode's distance vector.
-        Message message = new Message(selfNode, vector, getNeighbors());
+        // Compiles the ringoNode's distance vector.
+        Message message = new Message(ringoNode, vector, getAllKnownNeighbors());
         try {
-            System.out.println("selfNode in notifyNeighbors: " + selfNode.toString());
+            System.out.println("ringoNode in alertRingos: " + ringoNode.toString());
         } catch (Exception e) {
-            System.out.println(e + ": selfNode is null inside notifyNeighbors");
+            System.out.println(e + ": ringoNode is null inside alertRingos");
         }
         int counter = 0;
         try {
@@ -783,14 +783,14 @@ public class Ringo {
                 sBuilder.append(">\n");
                 counter++;
             }
-            System.out.println("vector in notifyNeighbors: " + sBuilder.toString());
+            System.out.println("vector in alertRingos: " + sBuilder.toString());
         } catch (Exception e) {
-            System.out.println(e + ": at interation " + counter + ", aNode did not have a key in the vector in notifyNeighbors");
+            System.out.println(e + ": at interation " + counter + ", aNode did not have a key in the vector in alertRingos");
         }
         try {
-            System.out.println("getNeigbors as called by notifyNeighbors: "+getNeighbors().toString());
+            System.out.println("getNeigbors as called by alertRingos: "+getAllKnownNeighbors().toString());
         } catch (Exception e) {
-            System.out.println(e + "getNeighbors was null in notifyNeighbors");
+            System.out.println(e + "getAllKnownNeighbors was null in alertRingos");
         }
 
         // Send the message to every neighbor.
@@ -804,10 +804,10 @@ public class Ringo {
      * can be converted to show_matrix or show_ringo
      */
     private static void printLatestMessages() {
-        System.out.println("Latest messages received by node " + selfNode + ":");
+        System.out.println("Latest messages received by node " + ringoNode + ":");
         System.out.println("      \t| Neighbors");
         System.out.print("Dest. \t|");
-        Collection<Node> neighbors = getNeighbors();
+        Collection<Node> neighbors = getAllKnownNeighbors();
         for (Node n : neighbors) {
             System.out.print("\t" + n);
         }
@@ -817,17 +817,17 @@ public class Ringo {
             System.out.print("--------");
         }
         System.out.print("\n");
-        for (Node dest : getDestinations()) {
+        for (Node dest : fetchDestinations()) {
             System.out.print(dest + "\t|");
             for (Node n : neighbors) {
                 String costFromNeighborTo = "";
-                if (getCostFromNeighborTo(n, dest) == Float.POSITIVE_INFINITY) {
+                if (getCostFromOneArbitraryNeighborToAnother(n, dest) == Float.POSITIVE_INFINITY) {
                     costFromNeighborTo = "Inf";
                 } else {
                     // costFromNeighborTo =
-                    // Float.toString(getCostFromNeighborTo(n,dest));
+                    // Float.toString(getCostFromOneArbitraryNeighborToAnother(n,dest));
                     costFromNeighborTo = Integer
-                            .toString((int) getCostFromNeighborTo(n, dest));
+                            .toString((int) getCostFromOneArbitraryNeighborToAnother(n, dest));
                 }
                 System.out.print("\t" + costFromNeighborTo);
             }
@@ -840,21 +840,21 @@ public class Ringo {
     /**
      * print the distance vector
      */
-    private static void printDistanceVector() {
+    private static void printVectorMatrix() {
         System.out.println("Distance vector and forwarding table for node "
-                + selfNode.toString() + ":");
+                + ringoNode.toString() + ":");
         System.out.println("Dest.\tCost (Next Hop)");
         System.out.println("-------------------------");
-        for (Node dest : getDestinations()) {
+        for (Node dest : fetchDestinations()) {
             String costToDestination;
-            if (getCostToDestination(dest) == Float.POSITIVE_INFINITY) {
+            if (findCostToDestination(dest) == Float.POSITIVE_INFINITY) {
                 costToDestination = "Inf";
             } else {
                 costToDestination = Integer
-                        .toString((int) getCostToDestination(dest));
+                        .toString((int) findCostToDestination(dest));
             }
             System.out.println(dest.toString() + "\t" + costToDestination + " ("
-                    + getNextHopTo(dest) + ")");
+                    + fetchNextHopTo(dest) + ")");
         }
         System.out.println("");
     }
@@ -865,16 +865,14 @@ public class Ringo {
      *
      * @return the current ringo's ip address
      */
-    private static String getSelfIP() {
+    private static String getMyIP() {
        try {
-           URL url_name = new URL("http://bot.whatismyipaddress.com");
-           BufferedReader sc = new BufferedReader(new InputStreamReader(url_name.openStream()));
-           return sc.readLine().trim();
-       }
-       catch (Exception e) {
+           URL url = new URL("http://bot.whatismyipaddress.com");
+           BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+           return reader.readLine().trim();
+       } catch (Exception e) {
            return null;
        }
-        // return "127.0.0.1";
     }
 
     /**
@@ -901,7 +899,7 @@ public class Ringo {
     private static float calculate_rtt(String ipAddress, int port) {
         float start = System.currentTimeMillis();
         //Create IP UDP connection
-        sender_thread.submit(new StringSender("ping:" + selfNode.getIp() + ":" + selfNode.getPort(), ipAddress, port));
+        sender_thread.submit(new StringSender("ping:" + ringoNode.getIp() + ":" + ringoNode.getPort(), ipAddress, port));
 
         try {
             TimeUnit.MILLISECONDS.sleep(2000);
