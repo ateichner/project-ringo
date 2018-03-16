@@ -8,8 +8,6 @@ public class Node implements Comparable<Node> {
     private String ip;
     private int port;
 
-    // Data structure mapping this nodes neighbors to the costs of getting to each neighbor.
-
 
     /**
      * Constructor for Node
@@ -59,12 +57,8 @@ public class Node implements Comparable<Node> {
         return ip.equals(target.getIp()) && port == target.getPort();
     }
 
-
+    @Override
     public int compareTo(Node target) {
-        if (equals(target)) {
-            return 0;
-        } else {
-            return 1;
-        }
+        return toString().compareTo(target.toString());
     }
 }

@@ -175,13 +175,17 @@ public class Ringo {
             String in = new String(data).trim();
 
             if (in.contains("ping:")) {
+                System.out.println("ping request from: " + in.split(":")[1] + in.split(":")[2]);
                 sender_thread.submit(new StringSender("ping-ack", in.split(":")[1], Integer.parseInt(in.split(":")[2])));
             } else if (in.equals("ping-ack")) {
                 System.out.println("ping acked");
                 pingAck = System.currentTimeMillis();
+            } else {
+                Message m = new Message(in);
+                deliverMessage(m);
+                doDistanceVectorUpdate();
             }
 
-            Message m = new Message(in);
 
         }
 
@@ -243,18 +247,17 @@ public class Ringo {
                 String pocPortStr = in[4];
                 int pocPort = Integer.parseInt(pocPortStr);
                 int numRingo = Integer.parseInt(in[5]);
+                boolean hasPoC = !pocName.equals("0") & pocPort != 0;
 
                 // set up self selfNode
                 selfNode = new Node(getSelfIP(), selfPort);
-                Float selfCost = (0.0f);
-                addNeighbor(selfNode, selfCost);
+                addNeighbor(selfNode, 0.0f);
                 System.out.println("Started the selfNode");
 
                 // start the receiver_thread
                 receiver_thread.submit(new MessageReceiver(selfPort));
 
                 // if this ringo has a PoC
-                boolean hasPoC = !pocName.equals("0") & pocPort != 0;
                 if (hasPoC) {
                     // Create new selfNode here
                     if (getIP(pocName) == null) {
@@ -263,10 +266,11 @@ public class Ringo {
                     }
 
                     // code
+                    pocName = getIP(pocName);
                     float pocRTT = calculate_rtt(pocName, pocPort);
-                    addNeighbor(new Node(getIP(pocName), pocPort), pocRTT);
+                    addNeighbor(new Node(pocName, pocPort), pocRTT);
+                    
                     System.out.println("Started PoC: " + pocName + "|" + pocPort);
-                    System.out.println(getCostToNeighbor(new Node(getIP(pocName), pocPort)));
                     doDistanceVectorUpdate();
                     System.out.println("Distance vector updated");
                 }
@@ -465,11 +469,9 @@ public class Ringo {
     /**
      * Gets the messages from the MessageQueue and puts it into a HashMap
      */
-    public static void deliverMessageQueue() {
-        for (Message m: messageQueue) {
-            messages.put(m.getFrom(), m);
-        }
-        messageQueue.clear();
+    public static void deliverMessage(Message m) {
+        System.out.println("deliver the message");
+        messages.put(m.getFrom(), m);
         newMessages = true;
     }
 
@@ -523,7 +525,7 @@ public class Ringo {
      * @return a Collection of all possible destinations from this selfNode
      */
     private static Collection<Node> getDestinations() {
-        return new TreeSet<>(distanceVector.keySet());
+        return new HashSet<>(distanceVector.keySet());
     }
 
 
@@ -531,7 +533,7 @@ public class Ringo {
      * @return a Collection of this selfNode's neighbors
      */
     private static Collection<Node> getNeighbors() {
-        return new TreeSet<>(costToNeighborMap.keySet());
+        return new HashSet<>(costToNeighborMap.keySet());
     }
 
 
@@ -596,11 +598,10 @@ public class Ringo {
      * Updates the Distance Vector
      *
      * @param destination the final node
-     * @param cost
-     * @throws Exception
+     * @param cost the cost to destination
+     * @throws Exception some error
      */
-    private static void updateDistanceVector(Node destination, float cost)
-            throws Exception {
+    private static void updateDistanceVector(Node destination, float cost) throws Exception {
         if (cost > 0) {
             distanceVector.put(destination, cost);
         } else {
