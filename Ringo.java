@@ -92,7 +92,7 @@ public class Ringo {
                 // send data
                 byte[] out_data = data.getBytes();
                 DatagramPacket sendPkt = new DatagramPacket(out_data, out_data.length, InetAddress.getByName(ip), port);
-                System.out.println("String transmitted:  " + "ip: " + InetAddress.getByName(ip).toString() + " | " + "port: " + port);
+                System.out.println("String transmitted:  " + "ip: " + ip + " | " + "port: " + port);
                 socket.send(sendPkt);
 
             } catch (SocketException e) {
@@ -174,9 +174,10 @@ public class Ringo {
 
             String in = new String(data).trim();
 
-            if (in.contains("ping")) {
-                sender_thread.submit(new StringSender("ping ack", in.split(":")[1], Integer.parseInt(in.split(":")[2])));
-            } else if (in.equals("ping ack")) {
+            if (in.contains("ping:")) {
+                sender_thread.submit(new StringSender("ping-ack", in.split(":")[1], Integer.parseInt(in.split(":")[2])));
+            } else if (in.equals("ping-ack")) {
+                System.out.println("ping acked");
                 pingAck = System.currentTimeMillis();
             }
 
@@ -262,8 +263,10 @@ public class Ringo {
                     }
 
                     // code
-                    addNeighbor(new Node(getIP(pocName), pocPort), calculate_rtt(pocName, pocPort));
-                    System.out.println("Started PoC");
+                    float pocRTT = calculate_rtt(pocName, pocPort);
+                    addNeighbor(new Node(getIP(pocName), pocPort), pocRTT);
+                    System.out.println("Started PoC: " + pocName + "|" + pocPort);
+                    System.out.println(getCostToNeighbor(new Node(getIP(pocName), pocPort)));
                     doDistanceVectorUpdate();
                     System.out.println("Distance vector updated");
                 }
@@ -731,15 +734,14 @@ public class Ringo {
     private static float calculate_rtt(String ipAddress, int port) {
         float start = System.currentTimeMillis();
         //Create IP UDP connection
-        sender_thread.submit(new StringSender("ping:" + selfNode.getIp() + ":" + port, ipAddress, port));
+        sender_thread.submit(new StringSender("ping:" + selfNode.getIp() + ":" + selfNode.getPort(), ipAddress, port));
 
         try {
-            TimeUnit.MILLISECONDS.sleep(3000);
+            TimeUnit.MILLISECONDS.sleep(2000);
         } catch (InterruptedException e) {
             System.out.println("sleep fail");
         }
 
-        System.out.println(pingAck - start);
         return pingAck - start;
     }
 }
