@@ -183,6 +183,17 @@ public class Ringo {
             } else {
                 Message m = new Message(in);
                 deliverMessage(m);
+                //for (Node n: m.getDestinations()) {
+                /*
+                    if (!distanceVector.containsKey(n)) {
+                        addNeighbor(n, calculate_rtt(n.getIp(), n.getPort()));
+                    }
+                }
+
+                */
+                //}
+                //if ((m.getFrom()))
+                //changeCostToNeighbor(m.)
                 doDistanceVectorUpdate();
             }
 
@@ -269,7 +280,7 @@ public class Ringo {
                     pocName = getIP(pocName);
                     float pocRTT = calculate_rtt(pocName, pocPort);
                     addNeighbor(new Node(pocName, pocPort), pocRTT);
-                    
+
                     System.out.println("Started PoC: " + pocName + "|" + pocPort);
                     doDistanceVectorUpdate();
                     System.out.println("Distance vector updated");
