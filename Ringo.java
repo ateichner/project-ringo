@@ -183,14 +183,13 @@ public class Ringo {
             } else {
                 Message m = new Message(in);
                 deliverMessage(m);
-                //for (Node n: m.getDestinations()) {
-                /*
+                for (Node n: m.getDestinations()) {
                     if (!distanceVector.containsKey(n)) {
                         addNeighbor(n, calculate_rtt(n.getIp(), n.getPort()));
                     }
                 }
 
-                */
+
                 //}
                 //if ((m.getFrom()))
                 //changeCostToNeighbor(m.)
