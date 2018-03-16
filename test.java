@@ -1,32 +1,33 @@
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
 
 public class test {
-    public static void main(String[] args) {
 
+    public static void runSystemCommand(String command) {
+
+        try {
+            Process p = Runtime.getRuntime().exec(command);
+            BufferedReader inputStream = new BufferedReader(
+                    new InputStreamReader(p.getInputStream()));
+
+            String s;
+            // reading output stream of the command
+            while ((s = inputStream.readLine()) != null) {
+                System.out.println(s);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
+    public static void main(String[] args) {
 
-    private static float calculate_rtt(String ip_address) {
-        float start = -1;
-        float rtt = -1;
-        float stop = -1;
-        //Create IP UDP connection
-        try {
-            InetAddress ip = InetAddress.getByName(ip_address);
-            boolean reachale = ip.isReachable(5000);
+        String ip = "networklab1.cc.gatech.edu";
+        runSystemCommand("ping " + ip);
 
-            start = (float) System.currentTimeMillis();
-            //Send an ICMP packet
-            stop = (float) System.currentTimeMillis();
-            rtt = stop - start;
-        } catch (UnknownHostException e) {
-            System.out.println("Unknown host!");
-        } catch (IOException e) {
-            System.out.println("IOException!");
-        }
-        return rtt;
+
     }
 }

@@ -59,6 +59,54 @@ public class Ringo {
 
 
     /**
+     * the sender in charge of sending strings
+     */
+    static class StringSender implements Runnable{
+        String data;
+        String ip;
+        int port;
+
+        StringSender(String data, String ip, int port) {
+            this.data = data;
+            this.ip = ip;
+            this.port = port;
+        }
+
+        /**
+         * the default multi-thread method
+         */
+        public void run() {
+            System.out.println('\n');
+            System.out.println("string sender is active");
+            send();
+        }
+
+
+        /**
+         * sending method
+         */
+        private void send() {
+            try {
+                DatagramSocket socket = new DatagramSocket();
+
+                // send data
+                byte[] out_data = data.getBytes();
+                DatagramPacket sendPkt = new DatagramPacket(out_data, out_data.length, InetAddress.getByName(ip), port);
+                System.out.println("String transmitted:  " + "ip: " + InetAddress.getByName(ip).toString() + " | " + "port: " + port);
+                socket.send(sendPkt);
+
+            } catch (SocketException e) {
+                System.out.println("initializing socket failed");
+            } catch (UnknownHostException e) {
+                System.out.println("cannot solve the destination IP addresssss");
+            } catch (IOException e) {
+                System.out.println("sending data failed");
+            }
+        }
+    }
+
+
+    /**
      * the receiver_thread class
      *
      * in charge of receiving data and put it into IO_QUEUE
@@ -105,7 +153,7 @@ public class Ringo {
                     System.out.println("get packet from " + inIP + "|" + inPort);
 
                     //Check to see if there was data received
-                    process(packet.getData());
+                    process(packet.getData(), inIP, inPort);
                 } catch (SocketException e) {
                     System.out.println("initializing socket failed");
                 } catch (UnknownHostException e) {
@@ -121,10 +169,16 @@ public class Ringo {
          * check the incoming message for further actions
          * @param data the incoming byte array
          */
-        private void process(byte[] data) {
+        private void process(byte[] data, String inIP, int inPort) {
             System.out.println("processing packet");
 
             String in = new String(data).trim();
+
+            if (in.contains("ping")) {
+                sender_thread.submit(new StringSender("ping ack", in.split(":")[1], Integer.parseInt(in.split(":")[2])));
+            } else if (in.equals("ping ack")) {
+                pingAck = System.currentTimeMillis();
+            }
 
             Message m = new Message(in);
 
@@ -143,7 +197,7 @@ public class Ringo {
 
     // globals
     private static final ExecutorService receiver_thread = Executors.newSingleThreadExecutor();
-    private static final ExecutorService sender_thread = Executors.newSingleThreadExecutor();
+    private static final ExecutorService sender_thread = Executors.newCachedThreadPool();
 
     private static Node selfNode;
     private static int NUM_RINGO = 0;
@@ -167,6 +221,7 @@ public class Ringo {
     private static HashMap<Node, Node> forwardingTable = new HashMap<>();
 
     private static String flag;
+    private static float pingAck = (float) System.currentTimeMillis();
 
     private static final String keep_alive_check = "message keep alive check";
 
@@ -207,7 +262,7 @@ public class Ringo {
                     }
 
                     // code
-                    addNeighbor(new Node(getIP(pocName), pocPort), calculate_rtt(pocName));
+                    addNeighbor(new Node(getIP(pocName), pocPort), calculate_rtt(pocName, pocPort));
                     System.out.println("Started PoC");
                     doDistanceVectorUpdate();
                     System.out.println("Distance vector updated");
@@ -235,13 +290,10 @@ public class Ringo {
 
                 // TODO: IF IT DOES, CALL THE print_ring METHOD
                 System.out.println("show-ring test");
-                printDistanceVector();
+
 
             } else if (in[0].equals("show-matrix")) {
-                // TODO: CHECK TO SEE IF NODE EXISTS USING TRY-CATCH
-
-                // TODO: IF IT DOES, CALL THE print_matrix METHOD
-                System.out.println("show-matrix test");
+                printDistanceVector();
 
             } else if (in[0].equals("disconnect")) {
                 // TODO: CHECK TO SEE IF NODE EXISTS USING TRY-catch
@@ -673,27 +725,21 @@ public class Ringo {
     /**
      * calculating the rtt between current ringo and specific ringo
      *
-     * @param ip_address the target node ip address
+     * @param ipAddress the target node ip address
      * @return the rtt
      */
-    private static float calculate_rtt(String ip_address) {
-        float start = -1;
-        float rtt = -1;
-        float stop = -1;
+    private static float calculate_rtt(String ipAddress, int port) {
+        float start = System.currentTimeMillis();
         //Create IP UDP connection
-        try {
-            InetAddress ip = InetAddress.getByName(ip_address);
-            boolean reachale = ip.isReachable(160000);
+        sender_thread.submit(new StringSender("ping:" + selfNode.getIp() + ":" + port, ipAddress, port));
 
-            start = (float) System.currentTimeMillis();
-            //Send an ICMP packet
-            stop = (float) System.currentTimeMillis();
-            rtt = stop - start;
-        } catch (UnknownHostException e) {
-            System.out.println("Unknown host!");
-        } catch (IOException e) {
-            System.out.println("IOException!");
+        try {
+            TimeUnit.MILLISECONDS.sleep(3000);
+        } catch (InterruptedException e) {
+            System.out.println("sleep fail");
         }
-        return rtt;
+
+        System.out.println(pingAck - start);
+        return pingAck - start;
     }
 }
